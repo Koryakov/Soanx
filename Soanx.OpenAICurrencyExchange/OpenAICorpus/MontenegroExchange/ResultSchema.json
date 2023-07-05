@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "Id": {
+        "type": "number"
+      },
+      "Cities": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "Offers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Cities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "Sell": {
+              "type": "object",
+              "properties": {
+                "Currencies": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [ "USDT", "USDC", "BUSD", "EUR", "USD", "UAH", "RUB", "other" ]
+                  }
+                },
+                "AmountMin": {
+                  "type": "number"
+                },
+                "AmountMax": {
+                  "type": "number"
+                }
+              },
+              "required": [ "Currencies" ]
+            },
+            "Buy": {
+              "type": "object",
+              "properties": {
+                "Currencies": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [ "USDT", "USDC", "BUSD", "EUR", "USD", "UAH", "RUB", "other" ]
+                  }
+                },
+                "RateMin": {
+                  "type": "number"
+                },
+                "RateMax": {
+                  "type": "number"
+                },
+                "BanksTo": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [ "Currencies" ]
+            },
+            "SellToBuyRate": {
+              "type": "object",
+              "properties": {
+                "RateMin": {
+                  "type": "number"
+                },
+                "RateMax": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "required": [ "Sell", "Buy" ]
+        }
+      },
+      "NotMatched": {
+        "type": "boolean"
+      }
+    },
+    "required": [ "Id" ]
+  }
+}
