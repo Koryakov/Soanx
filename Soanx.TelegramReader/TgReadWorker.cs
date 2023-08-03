@@ -1,52 +1,43 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TdLib;
+﻿using static TdLib.TdApi.Update;
 using static TdLib.TdApi;
 using TdLib.Bindings;
-using Soanx.TelegramAnalyzer.Models;
-using static TdLib.TdApi.MessageContent;
-using static TdLib.TdApi.MessageSender;
-using Soanx.TgWorker;
-using static TdLib.TdApi.Update;
-using System.Text.Json;
-using Soanx.Repositories;
-using Microsoft.Extensions.Configuration;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using Soanx.OpenAICurrencyExchange;
+using TdLib;
+using Serilog;
 using Soanx.TelegramModels;
-using Soanx.Repositories.Models;
 
-namespace Soanx.TelegramAnalyzer;
+namespace Soanx.TelegramReader;
+public class TgReadWorker {
+    private readonly ILogger log = Log.ForContext<TgReadWorker>();
 
-public class TgEngine {
-    private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
+    private TdLibParametersModel tdLibParameters;
     private TgWorkerManager workerManager;
-    private AppSettingsHelper appSettings = new();
+
     private TdClient tdClient;
     private readonly ManualResetEventSlim ReadyToAuthenticate = new();
 
     private bool authNeeded;
     private bool passwordNeeded;
 
+    private IConfiguration config;
+    private string soanxConnectionString;
     private ApiClient openAiApiClient;
 
     private bool ignoreMessagesEvents;
     protected virtual TelegramRepository tgRepository { get; set; }
 
     public TgEngine() {
-        
-        tgRepository = new TelegramRepository(appSettings.SoanxConnectionString);
+        config = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddEnvironmentVariables().Build();
+        tdLibParameters = config.GetRequiredSection("TdLibParameters").Get<TdLibParametersModel>();
+        soanxConnectionString = config.GetConnectionString("SoanxDbConnection");
+        tgRepository = new TelegramRepository(soanxConnectionString);
+
+        tdClient = new TdClient();
     }
     public virtual void SubscribeToUpdateReceivedEvent() {
         tdClient.UpdateReceived += async (_, update) => { await UpdateReceived(update); };
     }
 
     public async Task RunAsync(bool ignoreMessagesEvents = false) {
-        logger.Info("IN TgEngine.Run()");
         this.ignoreMessagesEvents = ignoreMessagesEvents;
 
         this.tdClient = new TdClient();
@@ -54,22 +45,17 @@ public class TgEngine {
 
         workerManager = new TgWorkerManager();
         await workerManager.LoadWorkersAssemblies();
-        
+
         SubscribeToUpdateReceivedEvent();
         ReadyToAuthenticate.Wait();
-        logger.Info("TdLib authentication is done");
+        log.Info("TdLib authentication is done");
 
         if (authNeeded) {
-            logger.Info($"TdLib authNeeded = {@authNeeded}");
+            log.Info($"TdLib authNeeded = {@authNeeded}");
             await HandleAuthentication();
         }
-
-        //var currentUser = await GetCurrentUser();
-        //await TypeChatMessages();
-
-        logger.Info($"OUT TgEngine.Run()");
     }
-   
+
 
     public async Task<List<Message>> GetTdMessages(long chatId, DateTime dtFrom) {
 
@@ -104,14 +90,6 @@ public class TgEngine {
         return await tgRepository.AddTgMessageAsync(tgMessages);
     }
 
-    public async Task FormilizeMessages(List<TgMessage> tgMessages) {
-        if(openAiApiClient == null) {
-            var openAiParameters = appSettings.Config.GetRequiredSection("OpenAiParameters").Get<OpenAiParameters>();
-            openAiApiClient = new ApiClient(openAiParameters, null);
-        }
-        //await openAiApiClient.FormalizeExchangeMessages();
-    }
-
     public async Task<List<TgMessage>> LoadTgMessagesFromDbAsync(long chatId, DateTime sinceDate) {
         //Temporary solution. Specific worker plugin chats must be specified.
         List<TgMessage> tgMessages = await tgRepository.GetLastNotExtractedTgMessages(chatId, sinceDate, 20);
@@ -120,7 +98,7 @@ public class TgEngine {
     }
 
     protected async Task UpdateReceived(TdApi.Update update) {
-        logger.Info($"IN UpdateReceived({update.GetType()})");
+        log.Info($"IN UpdateReceived({update.GetType()})");
 
         switch (update) {
             case TdApi.Update.UpdateNewMessage:
@@ -165,7 +143,7 @@ public class TgEngine {
         }
     }
     private async Task ProcessNewMessages(UpdateNewMessage update) {
-        logger.Trace($"IN ProcessNewMessages");
+        log.Trace($"IN ProcessNewMessages");
         try {
             //TODO: store messages to Queue
             TgMessage tgMessage = MessageConverter.ConvertTgMessage(update.Message, UpdateType.UpdateNewMessage, JsonSerializer.Serialize(update));
@@ -175,13 +153,14 @@ public class TgEngine {
             foreach (var instance in workerInstances) {
                 await instance.Run();
             }
-            logger.Trace($"OUT ProcessNewMessages");
-        } catch (Exception ex) {
-            logger.Error(ex, $"ProcessNewMessages Error");
+            log.Trace($"OUT ProcessNewMessages");
+        }
+        catch (Exception ex) {
+            log.Error(ex, $"ProcessNewMessages Error");
         }
     }
 
-     
+
     private async Task ProcessEditedMessage(UpdateMessageContent update) {
         IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(update.ChatId, UpdateType.UpdateMessageContent);
         foreach (var instance in workerInstances) {
@@ -192,7 +171,8 @@ public class TgEngine {
         IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(update.ChatId, UpdateType.UpdateDeleteMessages);
         foreach (var instance in workerInstances) {
             //TODO: workers shoud work parallels
-            /*await*/ instance.Run();
+            /*await*/
+            instance.Run();
             //await Task.Run( () => instance.Run());
         }
     }
@@ -204,7 +184,7 @@ public class TgEngine {
     public virtual async Task HandleAuthentication() {
         // Setting phone number
         await tdClient.ExecuteAsync(new TdApi.SetAuthenticationPhoneNumber {
-            PhoneNumber = appSettings.TdLibParameters.PhoneNumber
+            PhoneNumber = tdLibParameters.PhoneNumber
         });
 
         // Telegram servers will send code to us
@@ -228,13 +208,13 @@ public class TgEngine {
 
     private async Task Authorize() {
         await tdClient.ExecuteAsync(new TdApi.SetTdlibParameters {
-            ApiId = appSettings.TdLibParameters.ApiId,
-            ApiHash = appSettings.TdLibParameters.ApiHash,
-            DeviceModel = appSettings.TdLibParameters.DeviceModel,
-            SystemLanguageCode = appSettings.TdLibParameters.SystemLanguageCode,
-            ApplicationVersion = appSettings.TdLibParameters.ApplicationVersion,
-            DatabaseDirectory = appSettings.TdLibParameters.DatabaseDirectory,
-            FilesDirectory = appSettings.TdLibParameters.FilesDirectory,
+            ApiId = tdLibParameters.ApiId,
+            ApiHash = tdLibParameters.ApiHash,
+            DeviceModel = tdLibParameters.DeviceModel,
+            SystemLanguageCode = tdLibParameters.SystemLanguageCode,
+            ApplicationVersion = tdLibParameters.ApplicationVersion,
+            DatabaseDirectory = tdLibParameters.DatabaseDirectory,
+            FilesDirectory = tdLibParameters.FilesDirectory,
             // More parameters available!
         });
     }

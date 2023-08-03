@@ -9,8 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.TelegramAnalyzer", "S
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.Repositories", "Soanx.Repositories\Soanx.Repositories.csproj", "{FB4E525A-8712-40FE-94B3-D34886A3112C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.Models", "Soanx.Models\Soanx.Models.csproj", "{D1D60DAC-7A80-4ABD-A0D0-7172E04BBF3A}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.TgWorker", "Soanx.TgWorker\Soanx.TgWorker.csproj", "{7BBE189D-B4C9-47F5-BA05-7FA79A2C3414}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.UnitTests", "Soanx.UnitTests\Soanx.UnitTests.csproj", "{D67FFF2C-1733-44C8-8209-5E69C5622F7F}"
@@ -20,6 +18,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.CurrencyExchange", "Plugins\Soanx.CurrencyExchange\Soanx.CurrencyExchange.csproj", "{0953E4E1-8242-4028-8512-DBB2C4233592}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.OpenAICurrencyExchange", "Soanx.OpenAICurrencyExchange\Soanx.OpenAICurrencyExchange.csproj", "{C9C01859-7E9F-4AC0-A244-3FFD93F75188}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.TelegramModels", "Soanx.TelegramModels\Soanx.TelegramModels.csproj", "{689AC1C4-4200-4F0A-9BEF-BC565343EC65}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,10 +39,6 @@ Global
 		{FB4E525A-8712-40FE-94B3-D34886A3112C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FB4E525A-8712-40FE-94B3-D34886A3112C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FB4E525A-8712-40FE-94B3-D34886A3112C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D1D60DAC-7A80-4ABD-A0D0-7172E04BBF3A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D1D60DAC-7A80-4ABD-A0D0-7172E04BBF3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D1D60DAC-7A80-4ABD-A0D0-7172E04BBF3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D1D60DAC-7A80-4ABD-A0D0-7172E04BBF3A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7BBE189D-B4C9-47F5-BA05-7FA79A2C3414}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7BBE189D-B4C9-47F5-BA05-7FA79A2C3414}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7BBE189D-B4C9-47F5-BA05-7FA79A2C3414}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -59,6 +55,10 @@ Global
 		{C9C01859-7E9F-4AC0-A244-3FFD93F75188}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C9C01859-7E9F-4AC0-A244-3FFD93F75188}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C9C01859-7E9F-4AC0-A244-3FFD93F75188}.Release|Any CPU.Build.0 = Release|Any CPU
+		{689AC1C4-4200-4F0A-9BEF-BC565343EC65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{689AC1C4-4200-4F0A-9BEF-BC565343EC65}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{689AC1C4-4200-4F0A-9BEF-BC565343EC65}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{689AC1C4-4200-4F0A-9BEF-BC565343EC65}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

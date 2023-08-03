@@ -1,6 +1,6 @@
-using Soanx.Models;
 using Soanx.TelegramAnalyzer;
 using Soanx.TelegramAnalyzer.Models;
+using Soanx.TelegramModels;
 using Soanx.TgWorker;
 
 namespace Soanx.UnitTests {

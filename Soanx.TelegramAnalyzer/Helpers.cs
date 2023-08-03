@@ -1,5 +1,4 @@
-﻿using Soanx.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,24 +6,28 @@ using System.Threading.Tasks;
 using static TdLib.TdApi.MessageContent;
 using static TdLib.TdApi.MessageSender;
 using static TdLib.TdApi;
+using Soanx.TelegramModels;
+using Soanx.Repository;
+using Soanx.Repositories.Models;
+using Soanx.OpenAICurrencyExchange.Models;
+using TdLib;
 
-namespace Soanx.TelegramAnalyzer {
+namespace Soanx.TelegramAnalyzer
+{
 
     public static class DateTimeHelper {
 
         public static DateTime FromUnixTime(int unixTimestamp) {
             return DateTimeOffset.FromUnixTimeSeconds(unixTimestamp).UtcDateTime;
         }
-
         public static int ToUnixTime(DateTime dateTime) {
             return (int)((DateTimeOffset)dateTime).ToUnixTimeSeconds();
         }
-
     }
 
     public static class MessageConverter {
 
-        public static TgMessage ConvertTgMessage(Message message, UpdateType updateType, string rawData) {
+        public static TgMessage ConvertTgMessage(TdLib.TdApi.Message message, UpdateType updateType, string rawData) {
             //TODO: store messages to Queue
             //((TdLib.TdApi.MessageContent.MessageText)update.Message.Content).Text.Text
             TgMessage tgMessage = new() {
@@ -32,7 +35,7 @@ namespace Soanx.TelegramAnalyzer {
                 UpdateType = updateType,
                 TgChatId = message.ChatId,
                 RawData = rawData,
-                //TODO: check is localor UTC Datetime
+                //TODO: check is local or UTC Datetime
                 CreatedDate = DateTimeHelper.FromUnixTime(message.Date),
             };
             InitializeSenderInfo(ref tgMessage, message.SenderId);
@@ -71,11 +74,64 @@ namespace Soanx.TelegramAnalyzer {
             }
         }
 
+        public static List<TgMessageRaw> ConvertToTgMessageRawList(List<TdLib.TdApi.Message> tdMessageList) {
+            //TODO: store messages to Queue
+            //((TdLib.TdApi.MessageContent.MessageText)update.Message.Content).Text.Text
+            var messageRawList = new List<TgMessageRaw>(tdMessageList.Count);
+
+            foreach (var tdMessage in tdMessageList) {
+                TgMessageRaw messageRaw = ConvertToTgMessageRaw(tdMessage);
+                messageRawList.Add(messageRaw);
+            }
+            return messageRawList;
+        }
+
+        public static TgMessageRaw ConvertToTgMessageRaw(TdApi.Message tdMessage) {
+            var date = DateTimeHelper.FromUnixTime(tdMessage.Date);
+
+            TgMessageRaw messageRaw = new() {
+                TgChatId = tdMessage.ChatId,
+                TgChatMessageId = tdMessage.Id,
+                UpdateType = UpdateType.None,
+                //TODO: check is local or UTC Datetime
+                CreatedDate = date,
+                ModifiedDate = date,
+            };
+            InitializeSenderInfo(ref messageRaw, tdMessage.SenderId);
+            InitializeMessageContentInfo(ref messageRaw, tdMessage.Content);
+            return messageRaw;
+        }
+
+        private static void InitializeMessageContentInfo(ref TgMessageRaw tgMessageRaw, MessageContent messageContent) {
+            switch (messageContent) {
+                case MessageContent.MessageText:
+                    tgMessageRaw.ContentType = MessageContentType.MessageText;
+                    tgMessageRaw.Text = ((MessageText)messageContent).Text.Text;
+                    break;
+                default:
+                    tgMessageRaw.ContentType = MessageContentType.None;
+                    tgMessageRaw.Text = string.Empty;
+                    break;
+            }
+        }
+
+        private static void InitializeSenderInfo(ref TgMessageRaw tgMessageRaw, MessageSender sender) {
+            switch (sender) {
+                case MessageSender.MessageSenderChat:
+                    tgMessageRaw.SenderType = SenderType.Chat;
+                    tgMessageRaw.SenderId = ((MessageSenderChat)sender).ChatId;
+                    break;
+                case MessageSender.MessageSenderUser:
+                    tgMessageRaw.SenderType = SenderType.User;
+                    tgMessageRaw.SenderId = ((MessageSenderUser)sender).UserId;
+                    break;
+                default:
+                    tgMessageRaw.SenderType = SenderType.Unknown;
+                    tgMessageRaw.SenderId = 0;
+                    break;
+            }
+        }
+
     }
 
-    internal class ChatHelper {
-
-        //public void Read
-
-    }
 }

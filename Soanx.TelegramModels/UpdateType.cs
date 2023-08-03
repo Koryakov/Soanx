@@ -1,40 +1,10 @@
-﻿
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace Soanx.Models;
-
-public enum SenderType {
-    Unknown = 0,
-    Chat = 1,
-    User = 2
-}
-    
-public class TgMessage {
-
-	[Key]
-    public long Id { get; set; }
-
-    public UpdateType UpdateType { get; set; }
-        
-    public SenderType SenderType { get; set; }
-
-    public long TgChatId { get; set; }
-
-    public long TgMessageId { get; set; }
-
-    public long SenderId { get; set; }
-    public MessageContentType MessageContentType { get; set; }
-    public string Text { get; set; }
-
-    public DateTime CreatedDate { get; set; }
-        
-    public string RawData { get; set; }
-
-	[Column(TypeName = "jsonb")]
-    public string ExtractedFacts { get; set; }
-        
-}
+namespace Soanx.TelegramModels;
 
 public enum UpdateType {
     None = 0,
@@ -143,64 +113,4 @@ public enum UpdateType {
     UpdateUsersNearby = 103,
     UpdateUserStatus = 104,
     UpdateWebAppMessageSent = 105
-}
-
-public enum MessageContentType {
-    None = 0,
-    MessageChatChangeTitle = 1,
-    MessageAnimatedEmoji = 2,
-    MessageAnimation = 3,
-    MessageAudio = 4,
-    MessageBasicGroupChatCreate = 5,
-    MessageCall = 6,
-    MessageChatAddMembers = 7,
-    MessageChatChangePhoto = 8,
-    MessageChatDeleteMember = 9,
-    MessageChatDeletePhoto = 10,
-    MessageChatJoinByLink = 11,
-    MessageChatJoinByRequest = 12,
-    MessageChatSetTheme = 13,
-    MessageChatSetTtl = 14,
-    MessageChatUpgradeFrom = 15,
-    MessageChatUpgradeTo = 16,
-    MessageContact = 17,
-    MessageContactRegistered = 18,
-    MessageCustomServiceAction = 19,
-    MessageDice = 20,
-    MessageDocument = 21,
-    MessageExpiredPhoto = 22,
-    MessageExpiredVideo = 23,
-    MessageForumTopicCreated = 24,
-    MessageForumTopicEdited = 25,
-    MessageForumTopicIsClosedToggled = 26,
-    MessageForumTopicIsHiddenToggled = 27,
-    MessageGame = 28,
-    MessageGameScore = 29,
-    MessageGiftedPremium = 30,
-    MessageInviteVideoChatParticipants = 31,
-    MessageInvoice = 32,
-    MessageLocation = 33,
-    MessagePassportDataReceived = 34,
-    MessagePassportDataSent = 35,
-    MessagePaymentSuccessful = 36,
-    MessagePaymentSuccessfulBot = 37,
-    MessagePhoto = 38,
-    MessagePinMessage = 39,
-    MessagePoll = 40,
-    MessageProximityAlertTriggered = 41,
-    MessageScreenshotTaken = 42,
-    MessageSticker = 43,
-    MessageSupergroupChatCreate = 44,
-    MessageText = 45,
-    MessageUnsupported = 46,
-    MessageVenue = 47,
-    MessageVideo = 48,
-    MessageVideoChatEnded = 49,
-    MessageVideoChatScheduled = 50,
-    MessageVideoChatStarted = 51,
-    MessageVideoNote = 52,
-    MessageVoiceNote = 53,
-    MessageWebAppDataReceived = 54,
-    MessageWebAppDataSent = 55,
-    MessageWebsiteConnected = 56
 }

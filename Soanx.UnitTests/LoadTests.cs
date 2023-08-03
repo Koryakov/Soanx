@@ -16,7 +16,7 @@ using static TdLib.TdApi.Update;
 
 namespace Soanx.UnitTests {
 
-    public class MockTgEngine : TgEngine, ITgEngine {
+    public class MockTgEngine : TgEngine {
         private event EventHandler<TdApi.Update> mockUpdateReceivedEvent;
         public MockTgEngine() { }
         public override void SubscribeToUpdateReceivedEvent() {

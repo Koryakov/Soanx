@@ -1,5 +1,4 @@
-﻿
-using Soanx.Models;
+﻿using Soanx.TelegramModels;
 using System.Reflection;
 
 namespace Soanx.TelegramAnalyzer.Models;
@@ -13,19 +12,25 @@ public class WorkerPluginSettings {
     public HashSet<UpdateType> ListeningEvents { get; set; }
 }
 
+public class TelegramBotSettings {
+    public string Token { get; set; }
+    public long ChatId { get; set; }
+}
+
+public class TgGrabbingChatsSettings {
+    public string Comment { get; set; }
+    public long ChatId { get; set; }
+    public DateTime DateFrom { get; set; }
+}
+
+//public class TgGrabbingChatsSettings {
+//    public List<TgChatGrabbingSettings> Chats { get; set; }
+//}
+
 //public class WorkerSubscriber {
 //    public WorkerPluginSettings Settings { get; set; }
 //    public Assembly PluginAssembly { get; set; }
 //}
 
-public class TdLibParametersModel {
-    public required int ApiId { get; set;}
-    public required string ApiHash { get; set;}
-    public  string PhoneNumber { get; set;}
-    public required string ApplicationVersion { get; set;}
-    public required string DeviceModel { get; set; }
-    public required string SystemLanguageCode { get; set; }
-    public required string DatabaseDirectory { get; set; }
-    public required string FilesDirectory { get; set; }
-}
+
 

@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Soanx.Models;
+using Soanx.Repositories.Models;
 using Soanx.TelegramAnalyzer.Models;
 using Soanx.TgWorker;
 using System;
@@ -15,6 +15,7 @@ using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using static TdLib.TdApi;
 using TdLib;
+using Soanx.TelegramModels;
 
 namespace Soanx.TelegramAnalyzer {    
 

@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Soanx.Models\Soanx.Models.csproj" />
+    <ProjectReference Include="..\Soanx.TelegramModels\Soanx.TelegramModels.csproj" />
   </ItemGroup>
 
 </Project>

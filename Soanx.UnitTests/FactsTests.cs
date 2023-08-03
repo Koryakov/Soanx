@@ -4,7 +4,6 @@ using Moq;
 using OpenAI;
 using OpenAI.Managers;
 using OpenAI.ObjectModels.RequestModels;
-using Soanx.Models;
 using Soanx.OpenAICurrencyExchange;
 using Soanx.TelegramAnalyzer;
 using Soanx.TelegramAnalyzer.Models;
