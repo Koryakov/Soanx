@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Serilog;
 using Soanx.Repositories.Models;
 using System;
 using System.Collections;
@@ -11,22 +12,23 @@ using System.Threading.Tasks;
 namespace Soanx.Repositories
 {
     public class TelegramRepository : SoanxDbRepositoryBase {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private Serilog.ILogger log;
 
         public TelegramRepository(string connectionString) : base(connectionString) {
+            log = Log.ForContext<TelegramRepository>();
         }
 
         public async Task AddTgMessageAsync(TgMessage tgMessage) {
-            logger.Debug($"IN AddTgMessageAsync()");
+            log.Debug($"IN AddTgMessageAsync()");
             try {
                 using (var db = CreateContext()) {
                     await db.TgMessage.AddAsync(tgMessage);
                     bool hasChanges = db.ChangeTracker.HasChanges();
                     int count = await db.SaveChangesAsync();
-                    logger.Debug($"OUT AddTgMessageAsync() hasChanges = {hasChanges}; count = {count}; tgMssageId = {tgMessage.TgMessageId}");
+                    log.Debug($"OUT AddTgMessageAsync() hasChanges = {hasChanges}; count = {count}; tgMssageId = {tgMessage.TgMessageId}");
                 }
             } catch (Exception ex) {
-                logger.Error(ex);
+                log.Error(ex, "AddTgMessageAsync() exception");
             }
         }
 
@@ -36,12 +38,12 @@ namespace Soanx.Repositories
                     await db.TgMessage.AddRangeAsync(tgMessageList);
                     //int count = await db.SaveChangesAsync();
                     int count = await db.SaveChangesAsync();
-                    logger.Debug($"OUT AddTgMessageAsync() count = {count};");
+                    log.Debug($"OUT AddTgMessageAsync() count = {count};");
                     return count;
                 }
             }
             catch (Exception ex) {
-                logger.Error(ex);
+                log.Error(ex, "AddTgMessageAsync() exception");
                 return 0;
             }
         }
@@ -62,31 +64,46 @@ namespace Soanx.Repositories
             }
         }
 
-        public async Task SaveTgMessageRawListAsync(List<TgMessageRaw> tgMessageRawList) {
-            var existingChatsIds = tgMessageRawList.Select(r => r.TgChatId).ToList();
+        public async Task SaveTgMessageRawList(List<TgMessageRaw> tgMessageRawList) {
+            var locLog = log.ForContext("method", "SaveTgMessageRawList()");
+            locLog.Information("IN, list count = {Count}", tgMessageRawList.Count);
+
+            var existingChatsIds = tgMessageRawList.Select(r => r.TgChatId).Distinct().ToList();
             var existingMessagesIds = tgMessageRawList.Select(r => r.TgChatMessageId).ToList();
+            locLog.Verbose("New portion data: chatIds: {@chatIds}, msgIds: {@msgIds}", existingChatsIds, existingMessagesIds);
+
             using (var db = CreateContext()) {
                 using (var transaction = await db.Database.BeginTransactionAsync()) {
                     try {
-                        var existingIds = await db.TgMessageRaw.Where(
-                            m => 
-                            existingMessagesIds.Contains(m.TgChatMessageId)
-                            &&
-                            existingChatsIds.Contains(m.TgChatId)
-                            ).Select(r => new TgMessageRaw() { 
-                                TgChatId = r.TgChatId,
-                                TgChatMessageId = r.TgChatMessageId
-                            }).AsNoTracking().ToListAsync();
+                        var query = db.TgMessageRaw.Where(
+                           dbMessages =>
+                               existingChatsIds.Contains(dbMessages.TgChatId)
+                               &&
+                               existingMessagesIds.Contains(dbMessages.TgChatMessageId)
+                           ).Select(r => new TgMessageRaw() {
+                               TgChatId = r.TgChatId,
+                               TgChatMessageId = r.TgChatMessageId
+                           });
+
+                        var dbExistingMessages = await query.AsNoTracking().ToListAsync();
+                        locLog.Information("existing messages count = {existingCount}; Ids from db:  {@dbMessages}", dbExistingMessages.Count, dbExistingMessages.Select(e => e.TgChatMessageId));
 
                         var comparer = new TgMessageRawComparer();
-                        var filteredMessages = tgMessageRawList.Where(message => !existingIds.Contains(message, comparer)).ToList();
-
-                        await db.TgMessageRaw.AddRangeAsync(filteredMessages);
-                        await db.SaveChangesAsync();
-                        transaction.Commit();
+                        var filteredMessages = tgMessageRawList.Where(message => !dbExistingMessages.Contains(message, comparer)).ToList();
+                        locLog.Information("filtered msg count = {filteredMsgCount}", filteredMessages.Count);
+                        
+                        if (filteredMessages.Count > 0) {
+                            await db.TgMessageRaw.AddRangeAsync(filteredMessages);
+                            int savedCount = await db.SaveChangesAsync();
+                            await transaction.CommitAsync();
+                            locLog.Information("savedCount = {savedCount}.  Transaction committed", savedCount);
+                        } else {
+                            locLog.Information("No messages to save");
+                        }
                     }
                     catch (Exception ex) {
                         transaction.Rollback();
+                        locLog.Error(ex, "transaction has been rollbacked");
                         throw;
                     }
                 }

@@ -13,76 +13,118 @@ using Soanx.TgWorker;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using System.Collections.Concurrent;
 using Soanx.TelegramAnalyzer.Models;
+using Serilog;
+using Serilog.Context;
 
 namespace Soanx.TelegramAnalyzer;
 public class TgMessageGrabbingWorker: ITelegramWorker {
-    private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
     //private readonly ConcurrentBag<TgMessageRaw> tgRawMessagesForStoring = new();
 
     private TdLibParametersModel tdLibParameters;
     private AppSettingsHelper appSettings = new();
+    private object addingLockObj = new object();
+
     protected virtual TelegramRepository tgRepository { get; set; }
 
     public ITdClientAuthorizer TdClientAuthorizer { get; private set; }
     public TdClient TdClient { get; private set; }
+    private Serilog.ILogger log = Log.ForContext<TgMessageGrabbingWorker>();
 
 
     private IConfiguration config;
 
     public TgMessageGrabbingWorker(ITdClientAuthorizer tdClientAuthorizer) {
         TdClientAuthorizer = tdClientAuthorizer;
-        TdClient = new TdClient();
-        TdClient.Bindings.SetLogVerbosityLevel(TdLogLevel.Fatal);
+        TdClient = TdClientAuthorizer.TdClient;
         tgRepository = new TelegramRepository(appSettings.SoanxConnectionString);
     }
 
     public async Task Run(CancellationToken cancellationToken) {
+        log.Information("IN Run(). Grabbing settings: {@TgMessageGrabbingSettings}", appSettings.TgGrabbingSettings);
         await TdClientAuthorizer.Run();
 
         ConcurrentBag<TgMessageRaw> tgRawMessagesForStoring = new();
         List<Task> tasks = new List<Task>();
-        var chatSettings = appSettings.TgGrabbingChatsSettings;
+        var chatSettings = appSettings.TgGrabbingChats;
         foreach(var chatSetting in chatSettings) {
             tasks.Add(Task.Factory.StartNew(async () => 
                 ReadTdMessagesIntoCollection(chatSetting, tgRawMessagesForStoring, cancellationToken)));
         }
 
-        tasks.Add(SaveTgMessagRaws(tgRawMessagesForStoring, cancellationToken));
+        tasks.Add(SaveTgMessagesRaws(tgRawMessagesForStoring, cancellationToken));
 
         await Task.WhenAll(tasks);
+        log.Information("OUT Run()");
     }
 
-    public async Task ReadTdMessagesIntoCollection(TgGrabbingChatsSettings settings, 
+    public async Task ReadTdMessagesIntoCollection(TgGrabbingChat grabbingChat,
         ConcurrentBag<TgMessageRaw> collectionForAdding, CancellationToken cancellationToken) {
 
-        //var chats = await TdClient.ExecuteAsync(new TdApi.GetChats {
-        //    Limit = 100
-        //});
+        var locLog = log.ForContext("method", "ReadTdMessagesIntoCollection()").ForContext("chatId", grabbingChat.ChatId);
+        locLog.Information("IN");
+
         int minUnixDate = DateTimeHelper.ToUnixTime(DateTime.Now);
-        var unixFromDate = DateTimeHelper.ToUnixTime(settings.DateFrom);
-
+        var unixFromDate = DateTimeHelper.ToUnixTime(grabbingChat.ReadTillDate);
+        long oldestMessageId = 0L;
+        
         while (minUnixDate >= unixFromDate) {
-            Messages msgBundle = await TdClient.GetChatHistoryAsync(settings.ChatId, limit: 100, onlyLocal: false);
-            minUnixDate = msgBundle.Messages_.Min(m => m.Date);
+            locLog.Information("TdClient.GetChatHistoryAsync() started... MinDate={@minDate}, fromMessageId={oldestMessageId}"
+                , DateTimeHelper.FromUnixTime(minUnixDate), oldestMessageId);
             
-            for (int i = 0; i < msgBundle.Messages_.Count(); i++) {
-                collectionForAdding.Add(MessageConverter.ConvertToTgMessageRaw(msgBundle.Messages_[i]));
-            }
+            Messages msgBundle = await TdClient.GetChatHistoryAsync(
+                chatId: grabbingChat.ChatId,
+                fromMessageId: oldestMessageId,
+                limit: appSettings.TgGrabbingSettings.ChatHistoryReadingCount,
+                onlyLocal: false);
 
-            if(cancellationToken.IsCancellationRequested) {
+            Message? oldestMessage = msgBundle.Messages_.OrderBy(m => m.Date).FirstOrDefault();
+            if (oldestMessage != null && minUnixDate > oldestMessage.Date) {
+                minUnixDate = oldestMessage.Date;
+                oldestMessageId = oldestMessage.Id;
+            }
+            int readMessagesCount = msgBundle.Messages_.Count();
+            locLog.Information("TdClient.GetChatHistoryAsync() finished, readMessagesCount count = {readMessagesCount}", readMessagesCount);
+
+            int addingCounter = 0;
+            lock (addingLockObj) {
+                for (int i = 0; i < readMessagesCount; i++) {
+                    var tdMsg = msgBundle.Messages_[i];
+
+                    if (!collectionForAdding.Any(adding =>
+                        adding.TgChatId == tdMsg.ChatId && adding.TgChatMessageId == tdMsg.Id)) {
+                        
+                        var tgMessageRaw = MessageConverter.ConvertToTgMessageRaw(tdMsg);
+                        collectionForAdding.Add(tgMessageRaw);
+                        addingCounter++;
+                    } else {
+                        locLog.Verbose<Message>("Msg not added into collection: {@tdMsg}", tdMsg);
+                    }
+                }
+            }
+            locLog.Information("Filtered messages count = {addingCounter}", addingCounter);
+
+            if (cancellationToken.IsCancellationRequested) {
+                locLog.Information("OUT IsCancellationRequested.");
                 return;
             }
-            Task.Delay(500).Wait();
+            Task.Delay(appSettings.TgGrabbingSettings.ReadingMessagesInterval).Wait();
         }
+        locLog.Information("OUT");
     }
 
-    private async Task SaveTgMessagRaws(ConcurrentBag<TgMessageRaw> collectionForStoring, CancellationToken cancellationToken) {
+    private async Task SaveTgMessagesRaws(ConcurrentBag<TgMessageRaw> collectionForStoring, CancellationToken cancellationToken) {
+        var locLog = log.ForContext("method", "SaveTgMessagesRaws()");
+        locLog.Information("IN");
 
         while (!cancellationToken.IsCancellationRequested) {
-            var messagesList = collectionForStoring.Take(300).ToList();
+            var messagesList = collectionForStoring.Take(appSettings.TgGrabbingSettings.SavingMessagesBatchSize).ToList();
+            
             if (messagesList.Count > 0) {
-                await tgRepository.SaveTgMessageRawListAsync(messagesList);
+                locLog.Information("msg in collectionForStoring = {allCollection}, taken to save = {takenCount}", collectionForStoring.Count, messagesList.Count);
+                await tgRepository.SaveTgMessageRawList(messagesList);
             }
+            Task.Delay(appSettings.TgGrabbingSettings.SavingMessagesRunsInterval).Wait();
         }
+        locLog.Information("OUT. CancellationToken has been triggered");
     }
 }

@@ -1,0 +1,28 @@
+{
+  "Serilog": {
+    "Using": [ "Serilog.Sinks.File", "Serilog.Enrichers.Context" ],
+    "MinimumLevel": {
+      "Default": "Verbose"
+    },
+    "WriteTo": [
+      {
+        "Name": "File",
+        "Args": {
+          "path": "C:\\temp\\SoanxErrors.txt",
+          "restrictedToMinimumLevel": "Error",
+          "rollingInterval": "Day",
+          "outputTemplate": "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] Context={SourceContext} {Properties:j} {Message}{NewLine}{Exception}"
+        }
+      },
+      {
+        "Name": "File",
+        "Args": {
+          "path": "C:\\temp\\SoanxInfo.txt",
+          "restrictedToMinimumLevel": "Verbose",
+          "rollingInterval": "Day",
+          "outputTemplate": "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] Context={SourceContext} {Properties:j} {Message}{NewLine}{Exception}"
+        }
+      }
+    ]
+  }
+}

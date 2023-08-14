@@ -10,13 +10,20 @@ public class AppSettingsHelper {
     public TdLibParametersModel TdLibParameters { get; private set; }
     public string SoanxConnectionString { get; private set; }
     public TelegramBotSettings BotSettings { get; private set; }
-    public List<TgGrabbingChatsSettings> TgGrabbingChatsSettings { get; set; }
+    public TgMessageGrabbingSettings TgGrabbingSettings { get; private set; }
+    public List<TgGrabbingChat> TgGrabbingChats { get; set; }
 
     public AppSettingsHelper() {
-        Config = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddEnvironmentVariables().Build();
+        Config = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .AddJsonFile("serilogsettings.json")
+            .AddEnvironmentVariables()
+            .Build();
+
         TdLibParameters = Config.GetRequiredSection("TdLibParameters").Get<TdLibParametersModel>();
         SoanxConnectionString = Config.GetConnectionString("SoanxDbConnection");
         BotSettings = Config.GetRequiredSection("TelegramBotSettings").Get<TelegramBotSettings>();
-        TgGrabbingChatsSettings = Config.GetRequiredSection("TgGrabbingChatsSettings").Get<List<TgGrabbingChatsSettings>>();
+        TgGrabbingSettings = Config.GetRequiredSection("TgMessageGrabbingSettings").Get<TgMessageGrabbingSettings>();
+        TgGrabbingChats = Config.GetRequiredSection("TgGrabbingChats").Get<List<TgGrabbingChat>>();
     }
 }

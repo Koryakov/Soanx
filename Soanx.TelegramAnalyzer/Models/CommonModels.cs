@@ -17,13 +17,20 @@ public class TelegramBotSettings {
     public long ChatId { get; set; }
 }
 
-public class TgGrabbingChatsSettings {
+public class TgGrabbingChat {
     public string Comment { get; set; }
     public long ChatId { get; set; }
-    public DateTime DateFrom { get; set; }
+    public DateTime ReadTillDate { get; set; }
 }
 
-//public class TgGrabbingChatsSettings {
+public class TgMessageGrabbingSettings {
+    public int ReadingMessagesInterval { get; set; }
+    public int SavingMessagesRunsInterval { get; set; }
+    public int ChatHistoryReadingCount { get; set; }
+    public int SavingMessagesBatchSize { get; set; }
+}
+
+//public class TgGrabbingChats {
 //    public List<TgChatGrabbingSettings> Chats { get; set; }
 //}
 

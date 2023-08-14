@@ -1,4 +1,6 @@
-﻿using Soanx.TelegramAnalyzer.Models;
+﻿using Microsoft.Extensions.Logging;
+using Serilog;
+using Soanx.TelegramAnalyzer.Models;
 using Soanx.TelegramModels;
 using System;
 using System.Collections.Generic;
@@ -19,30 +21,45 @@ public class TdClientAuthorizer : ITdClientAuthorizer {
     public TdClient TdClient { get; private set; }
     public TdLibParametersModel TdLibParameters { get; private set; }
     public TelegramBotSettings BotSettings { get; private set; }
+    private Serilog.ILogger log;
 
 
     public TdClientAuthorizer(TdClient tdClient, TdLibParametersModel tdLibParameters, TelegramBotSettings botSettings) {
+        log = Log.ForContext<TdClientAuthorizer>();
         TdClient = tdClient;
         TdLibParameters = tdLibParameters;
         BotSettings = botSettings;
     }
     public async Task Run() {
+        log.Information("Run() started...");
         SubscribeToUpdateReceivedEvent();
         ReadyToAuthenticate.Wait();
+        UnsubscribeToUpdateReceivedEvent();
 
         if (authNeeded) {
             await HandleAuthentication();
         }
+        log.Information("Run() ended");
     }
 
     public virtual void SubscribeToUpdateReceivedEvent() {
+        log.Information("SubscribeToUpdateReceivedEvent()...");
         TdClient.UpdateReceived += async (_, update) => { await UpdateReceived(update); };
     }
 
+    public virtual void UnsubscribeToUpdateReceivedEvent() {
+        log.Information("UnsubscribeToUpdateReceivedEvent()...");
+        TdClient.UpdateReceived -= async (_, update) => { await UpdateReceived(update); };
+    }
+
     public virtual async Task HandleAuthentication() {
+        log.Information("HandleAuthentication() started...");
+        
         await TdClient.ExecuteAsync(new TdApi.SetAuthenticationPhoneNumber {
             PhoneNumber = TdLibParameters.PhoneNumber
         });
+        log.Information("TdApi.SetAuthenticationPhoneNumber called, PhoneNumber={PhoneNumber}", TdLibParameters.PhoneNumber);
+
 
         TelegramBotHelper botHelper = new(BotSettings);
         string smsCode = await botHelper.SendSmsCodeRequest("Send SMS code from phone");
@@ -50,19 +67,27 @@ public class TdClientAuthorizer : ITdClientAuthorizer {
         await TdClient.ExecuteAsync(new TdApi.CheckAuthenticationCode {
             Code = smsCode
         });
+        log.Information("TdApi.CheckAuthenticationCode called, Code={@smsCode}", smsCode);
 
-        if (!passwordNeeded) { return; }
+        if (!passwordNeeded) { 
+            log.Information($"passwordNeeded={@passwordNeeded}, return");
+            return;
+        }
 
         string password = await botHelper.SendSmsCodeRequest("Send password");
 
         await TdClient.ExecuteAsync(new TdApi.CheckAuthenticationPassword {
             Password = password
         });
+        log.Information("TdApi.CheckAuthenticationPassword called, Password={@password}", password);
+
+        log.Information("HandleAuthentication() ended");
     }
 
     public async Task UpdateReceived(TdApi.Update update) {
-        //Console.WriteLine($"{update.GetType()}");
-
+        if(!authNeeded || !passwordNeeded) {
+            log.Information("UpdateReceived started, authNeeded={0}, passwordNeeded={1}, update={update}", authNeeded, passwordNeeded, update);
+        }
         switch (update) {
             case TdApi.Update.UpdateAuthorizationState { AuthorizationState: TdApi.AuthorizationState.AuthorizationStateWaitTdlibParameters }:
                 await Authorize();
@@ -90,6 +115,7 @@ public class TdClientAuthorizer : ITdClientAuthorizer {
     }
 
     public async Task Authorize() {
+        log.Information("Authorize() started");
         await TdClient.ExecuteAsync(new TdApi.SetTdlibParameters {
             ApiId = TdLibParameters.ApiId,
             ApiHash = TdLibParameters.ApiHash,
@@ -100,6 +126,7 @@ public class TdClientAuthorizer : ITdClientAuthorizer {
             FilesDirectory = TdLibParameters.FilesDirectory,
             // More parameters available!
         });
+        log.Information("Authorize() ended");
     }
 
 }

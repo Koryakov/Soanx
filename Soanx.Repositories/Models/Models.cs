@@ -8,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Serilog;
 
 namespace Soanx.Repositories.Models;
 
@@ -34,12 +35,26 @@ public enum TgMessageRawProcessingStatus {
     Processed = 2,
 }
 
-public interface TgMessageUniqueIds {
+public interface ITgMessageUniqueIds {
     public long TgChatId { get; set; }
     public long TgChatMessageId { get; set; }
 }
 
+public class TgMessageUniqueIds {
+    public long TgChatId { get; set; }
+    public long TgChatMessageId { get; set; }
+
+    public TgMessageUniqueIds() { }
+    public TgMessageUniqueIds(long chatId, long messageId) {
+        TgChatId = chatId;
+        TgChatMessageId = messageId;
+    }
+}
+
 public class TgMessageRaw: TgMessageUniqueIds {
+
+    public TgMessageRaw() { }
+    public TgMessageRaw(long chatId, long messageId) : base(chatId, messageId) { }
 
     [Key]
     public long Id { get; set; }
@@ -59,8 +74,12 @@ public class TgMessageRaw: TgMessageUniqueIds {
 }
 
 public class TgMessageRawComparer : IEqualityComparer<TgMessageRaw> {
+    private Serilog.ILogger log = Log.ForContext<TgMessageRawComparer>();
+
     public bool Equals(TgMessageRaw x, TgMessageRaw y) {
-        return x.TgChatId == y.TgChatId && x.TgChatMessageId == y.TgChatMessageId;
+        bool result = x.TgChatId == y.TgChatId && x.TgChatMessageId == y.TgChatMessageId;
+        //log.Verbose("Equals={@result}. x.ChatId = {@xChatId}, x.MsgId = {@xMsgId}, y.ChatId = {@yChatId}, y.MsgId = {@yMsgId}", result, x.TgChatId, x.TgChatMessageId, y.TgChatId, y.TgChatMessageId);
+        return result;
     }
 
     public int GetHashCode(TgMessageRaw obj) {
