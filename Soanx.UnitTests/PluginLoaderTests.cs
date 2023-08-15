@@ -35,15 +35,15 @@ namespace Soanx.UnitTests {
         
         [Fact]
         public async Task CallPluginMethodTest() {
-            IEnumerable<ITgWorker> instancesForNew = fixt.manager.CreateWorkersForEvent(-802566439, UpdateType.UpdateNewMessage);
+            IEnumerable<ITgWorker> instancesForNew = fixt.manager.CreateWorkersForEvent(-802566439, SoanxTdUpdateType.UpdateNewMessage);
             Assert.Equal(1, instancesForNew.Count());
             var exception = Record.ExceptionAsync(() => instancesForNew.First().Run());
             //Assert.IsNull(exception);
 
-            IEnumerable<ITgWorker> instancesForEdited = fixt.manager.CreateWorkersForEvent(-802566439, UpdateType.UpdateMessageContent);
+            IEnumerable<ITgWorker> instancesForEdited = fixt.manager.CreateWorkersForEvent(-802566439, SoanxTdUpdateType.UpdateMessageContent);
             Assert.Equal(2, instancesForEdited.Count());
 
-            IEnumerable<ITgWorker> instancesForNone = fixt.manager.CreateWorkersForEvent(-802566439, UpdateType.None);
+            IEnumerable<ITgWorker> instancesForNone = fixt.manager.CreateWorkersForEvent(-802566439, SoanxTdUpdateType.None);
             Assert.Equal(0, instancesForNone.Count());
         }
 

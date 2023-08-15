@@ -95,7 +95,7 @@ public class TgEngine {
         var textMessages = rawMessages.Where(r => r.Content.DataType == "messageText").ToList();
         foreach (var txtMessage in textMessages) {
             convertedMessages.Add(MessageConverter
-                .ConvertTgMessage(txtMessage, UpdateType.None, JsonSerializer.Serialize(txtMessage)));
+                .ConvertTgMessage(txtMessage, SoanxTdUpdateType.None, JsonSerializer.Serialize(txtMessage)));
         }
         return convertedMessages;
     }
@@ -168,10 +168,10 @@ public class TgEngine {
         logger.Trace($"IN ProcessNewMessages");
         try {
             //TODO: store messages to Queue
-            TgMessage tgMessage = MessageConverter.ConvertTgMessage(update.Message, UpdateType.UpdateNewMessage, JsonSerializer.Serialize(update));
+            TgMessage tgMessage = MessageConverter.ConvertTgMessage(update.Message, SoanxTdUpdateType.UpdateNewMessage, JsonSerializer.Serialize(update));
             await tgRepository.AddTgMessageAsync(tgMessage);
 
-            IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(update.Message.ChatId, UpdateType.UpdateNewMessage);
+            IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(update.Message.ChatId, SoanxTdUpdateType.UpdateNewMessage);
             foreach (var instance in workerInstances) {
                 await instance.Run();
             }
@@ -183,13 +183,13 @@ public class TgEngine {
 
      
     private async Task ProcessEditedMessage(UpdateMessageContent update) {
-        IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(update.ChatId, UpdateType.UpdateMessageContent);
+        IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(update.ChatId, SoanxTdUpdateType.UpdateMessageContent);
         foreach (var instance in workerInstances) {
             await instance.Run();
         }
     }
     private async Task ProcessDeletedMessages(UpdateDeleteMessages update) {
-        IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(update.ChatId, UpdateType.UpdateDeleteMessages);
+        IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(update.ChatId, SoanxTdUpdateType.UpdateDeleteMessages);
         foreach (var instance in workerInstances) {
             //TODO: workers shoud work parallels
             /*await*/ instance.Run();
@@ -198,7 +198,7 @@ public class TgEngine {
     }
 
     private async Task ProcessMessagesUpdates(TdApi.Update update) {
-        IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(1, UpdateType.UpdateNewMessage);
+        IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(1, SoanxTdUpdateType.UpdateNewMessage);
     }
 
     public virtual async Task HandleAuthentication() {

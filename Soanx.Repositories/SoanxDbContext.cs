@@ -20,5 +20,11 @@ namespace Soanx.Repositories
                 builder.UseNpgsql(connectionString);
             }
         }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder) {
+            modelBuilder.Entity<TgMessageRaw>()
+                .HasIndex(p => new { p.TgChatId, p.TgChatMessageId, p.UpdateType })
+                .IsUnique();
+        }
     }
 }

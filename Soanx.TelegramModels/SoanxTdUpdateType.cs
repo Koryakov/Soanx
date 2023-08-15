@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Soanx.TelegramModels;
 
-public enum UpdateType {
+public enum SoanxTdUpdateType {
     None = 0,
     UpdateActiveEmojiReactions = 1,
     UpdateActiveNotifications = 2,

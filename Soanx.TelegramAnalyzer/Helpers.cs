@@ -11,6 +11,10 @@ using Soanx.Repository;
 using Soanx.Repositories.Models;
 using Soanx.OpenAICurrencyExchange.Models;
 using TdLib;
+using static TdLib.TdApi.Update;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types;
 
 namespace Soanx.TelegramAnalyzer
 {
@@ -27,7 +31,7 @@ namespace Soanx.TelegramAnalyzer
 
     public static class MessageConverter {
 
-        public static TgMessage ConvertTgMessage(TdLib.TdApi.Message message, UpdateType updateType, string rawData) {
+        public static TgMessage ConvertTgMessage(TdLib.TdApi.Message message, SoanxTdUpdateType updateType, string rawData) {
             //TODO: store messages to Queue
             //((TdLib.TdApi.MessageContent.MessageText)update.Message.Content).Text.Text
             TgMessage tgMessage = new() {
@@ -74,31 +78,46 @@ namespace Soanx.TelegramAnalyzer
             }
         }
 
-        public static List<TgMessageRaw> ConvertToTgMessageRawList(List<TdLib.TdApi.Message> tdMessageList) {
+        public static List<TgMessageRaw> ConvertToTgMessageRawList(List<TdLib.TdApi.Message> tdMessageList, SoanxTdUpdateType updateType) {
             //TODO: store messages to Queue
             //((TdLib.TdApi.MessageContent.MessageText)update.Message.Content).Text.Text
             var messageRawList = new List<TgMessageRaw>(tdMessageList.Count);
 
             foreach (var tdMessage in tdMessageList) {
-                TgMessageRaw messageRaw = ConvertToTgMessageRaw(tdMessage);
+                TgMessageRaw messageRaw = ConvertToTgMessageRaw(tdMessage, updateType);
                 messageRawList.Add(messageRaw);
             }
             return messageRawList;
         }
 
-        public static TgMessageRaw ConvertToTgMessageRaw(TdApi.Message tdMessage) {
+        public static TgMessageRaw ConvertToTgMessageRaw(TdApi.Message tdMessage, SoanxTdUpdateType updateType) {
             var date = DateTimeHelper.FromUnixTime(tdMessage.Date);
 
             TgMessageRaw messageRaw = new() {
                 TgChatId = tdMessage.ChatId,
                 TgChatMessageId = tdMessage.Id,
-                UpdateType = UpdateType.None,
+                UpdateType = updateType,
                 //TODO: check is local or UTC Datetime
                 CreatedDate = date,
                 ModifiedDate = date,
             };
-            InitializeSenderInfo(ref messageRaw, tdMessage.SenderId);
             InitializeMessageContentInfo(ref messageRaw, tdMessage.Content);
+            InitializeSenderInfo(ref messageRaw, tdMessage.SenderId);
+            return messageRaw;
+        }
+
+        public static TgMessageRaw ConvertToTgMessageRaw(UpdateNewMessage message) {
+
+            TgMessageRaw messageRaw = new() {
+                TgChatId = message.Message.ChatId,
+                TgChatMessageId = message.Message.Id,
+                UpdateType = SoanxTdUpdateType.UpdateNewMessage,
+                CreatedDate = DateTimeHelper.FromUnixTime(message.Message.Date),
+                ModifiedDate = DateTimeHelper.FromUnixTime(message.Message.EditDate),
+            };
+            InitializeMessageContentInfo(ref messageRaw, message.Message.Content);
+            InitializeSenderInfo(ref messageRaw, message.Message.SenderId);
+
             return messageRaw;
         }
 

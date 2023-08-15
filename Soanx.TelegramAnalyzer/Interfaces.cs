@@ -1,4 +1,6 @@
-﻿using TdLib;
+﻿using Soanx.Repositories.Models;
+using System.Collections.Concurrent;
+using TdLib;
 
 namespace Soanx.TelegramAnalyzer;
 

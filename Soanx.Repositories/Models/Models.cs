@@ -16,7 +16,7 @@ public class TgMessage {
 
     [Key]
     public long Id { get; set; }
-    public UpdateType UpdateType { get; set; }
+    public SoanxTdUpdateType UpdateType { get; set; }
     public SenderType SenderType { get; set; }
     public long TgChatId { get; set; }
     public long TgMessageId { get; set; }
@@ -62,7 +62,7 @@ public class TgMessageRaw: TgMessageUniqueIds {
     /// <summary>
     /// Actual only for storing from events and always "None" for reading previous messages
     /// </summary>
-    public UpdateType UpdateType { get; set; }
+    public SoanxTdUpdateType UpdateType { get; set; }
     public long TgChatId { get; set; }
     public long TgChatMessageId { get; set; }
     public SenderType SenderType { get; set; }

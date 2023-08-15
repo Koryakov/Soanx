@@ -64,7 +64,7 @@ namespace Soanx.Repositories
             }
         }
 
-        public async Task SaveTgMessageRawList(List<TgMessageRaw> tgMessageRawList) {
+        public async Task<bool> SaveTgMessageRawList(List<TgMessageRaw> tgMessageRawList) {
             var locLog = log.ForContext("method", "SaveTgMessageRawList()");
             locLog.Information("IN, list count = {Count}", tgMessageRawList.Count);
 
@@ -86,25 +86,26 @@ namespace Soanx.Repositories
                            });
 
                         var dbExistingMessages = await query.AsNoTracking().ToListAsync();
-                        locLog.Information("existing messages count = {existingCount}; Ids from db:  {@dbMessages}", dbExistingMessages.Count, dbExistingMessages.Select(e => e.TgChatMessageId));
+                        locLog.Information("Existing messages count = {existingCount}; Ids from db:  {@dbMessages}", dbExistingMessages.Count, dbExistingMessages.Select(e => e.TgChatMessageId));
 
                         var comparer = new TgMessageRawComparer();
                         var filteredMessages = tgMessageRawList.Where(message => !dbExistingMessages.Contains(message, comparer)).ToList();
-                        locLog.Information("filtered msg count = {filteredMsgCount}", filteredMessages.Count);
+                        locLog.Information("Filtered msg count = {filteredMsgCount}", filteredMessages.Count);
                         
                         if (filteredMessages.Count > 0) {
                             await db.TgMessageRaw.AddRangeAsync(filteredMessages);
                             int savedCount = await db.SaveChangesAsync();
                             await transaction.CommitAsync();
-                            locLog.Information("savedCount = {savedCount}.  Transaction committed", savedCount);
+                            locLog.Information("SavedCount = {savedCount}.  Transaction committed", savedCount);
                         } else {
                             locLog.Information("No messages to save");
                         }
+                        return true;
                     }
                     catch (Exception ex) {
                         transaction.Rollback();
-                        locLog.Error(ex, "transaction has been rollbacked");
-                        throw;
+                        locLog.Error(ex, "Transaction has been rollbacked");
+                        return false;
                     }
                 }
             }

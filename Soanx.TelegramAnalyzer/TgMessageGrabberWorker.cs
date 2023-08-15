@@ -18,47 +18,44 @@ using Serilog.Context;
 
 namespace Soanx.TelegramAnalyzer;
 public class TgMessageGrabbingWorker: ITelegramWorker {
-    //private readonly ConcurrentBag<TgMessageRaw> tgRawMessagesForStoring = new();
-
-    private TdLibParametersModel tdLibParameters;
-    private AppSettingsHelper appSettings = new();
-    private object addingLockObj = new object();
-
-    protected virtual TelegramRepository tgRepository { get; set; }
-
-    public ITdClientAuthorizer TdClientAuthorizer { get; private set; }
-    public TdClient TdClient { get; private set; }
-    private Serilog.ILogger log = Log.ForContext<TgMessageGrabbingWorker>();
-
 
     private IConfiguration config;
+    private TdLibParametersModel tdLibParameters;
+    private object addingLockObj = new object();
+    private Serilog.ILogger log = Log.ForContext<TgMessageGrabbingWorker>();
+    public ITdClientAuthorizer TdClientAuthorizer { get; private set; }
+    public TdClient TdClient { get; private set; }
+    public TgMessageGrabbingSettings TgGrabbingSettings { get; private set; }
+    public List<TgGrabbingChat> TgGrabbingChats { get; private set; }
+    public ConcurrentBag<TgMessageRaw> CollectionForStoring { get; private set; }
 
-    public TgMessageGrabbingWorker(ITdClientAuthorizer tdClientAuthorizer) {
+    public TgMessageGrabbingWorker(ITdClientAuthorizer tdClientAuthorizer, ConcurrentBag<TgMessageRaw> collectionForStoring,
+        TgMessageGrabbingSettings tgGrabbingSettings, List<TgGrabbingChat> tgGrabbingChats) {
+
+        CollectionForStoring = collectionForStoring;
         TdClientAuthorizer = tdClientAuthorizer;
         TdClient = TdClientAuthorizer.TdClient;
-        tgRepository = new TelegramRepository(appSettings.SoanxConnectionString);
+        TgGrabbingSettings = tgGrabbingSettings;
+        TgGrabbingChats = tgGrabbingChats;
+
     }
 
     public async Task Run(CancellationToken cancellationToken) {
-        log.Information("IN Run(). Grabbing settings: {@TgMessageGrabbingSettings}", appSettings.TgGrabbingSettings);
+        log.Information("IN Run(). Grabbing settings: {@TgMessageGrabbingSettings}");
+
         await TdClientAuthorizer.Run();
 
-        ConcurrentBag<TgMessageRaw> tgRawMessagesForStoring = new();
         List<Task> tasks = new List<Task>();
-        var chatSettings = appSettings.TgGrabbingChats;
-        foreach(var chatSetting in chatSettings) {
+        foreach(var chatSetting in TgGrabbingChats) {
             tasks.Add(Task.Factory.StartNew(async () => 
-                ReadTdMessagesIntoCollection(chatSetting, tgRawMessagesForStoring, cancellationToken)));
+                ReadTdMessagesIntoCollection(chatSetting, cancellationToken)));
         }
-
-        tasks.Add(SaveTgMessagesRaws(tgRawMessagesForStoring, cancellationToken));
 
         await Task.WhenAll(tasks);
         log.Information("OUT Run()");
     }
 
-    public async Task ReadTdMessagesIntoCollection(TgGrabbingChat grabbingChat,
-        ConcurrentBag<TgMessageRaw> collectionForAdding, CancellationToken cancellationToken) {
+    private async Task ReadTdMessagesIntoCollection(TgGrabbingChat grabbingChat, CancellationToken cancellationToken) {
 
         var locLog = log.ForContext("method", "ReadTdMessagesIntoCollection()").ForContext("chatId", grabbingChat.ChatId);
         locLog.Information("IN");
@@ -74,7 +71,7 @@ public class TgMessageGrabbingWorker: ITelegramWorker {
             Messages msgBundle = await TdClient.GetChatHistoryAsync(
                 chatId: grabbingChat.ChatId,
                 fromMessageId: oldestMessageId,
-                limit: appSettings.TgGrabbingSettings.ChatHistoryReadingCount,
+                limit: TgGrabbingSettings.ChatHistoryReadingCount,
                 onlyLocal: false);
 
             Message? oldestMessage = msgBundle.Messages_.OrderBy(m => m.Date).FirstOrDefault();
@@ -90,11 +87,11 @@ public class TgMessageGrabbingWorker: ITelegramWorker {
                 for (int i = 0; i < readMessagesCount; i++) {
                     var tdMsg = msgBundle.Messages_[i];
 
-                    if (!collectionForAdding.Any(adding =>
+                    if (!CollectionForStoring.Any(adding =>
                         adding.TgChatId == tdMsg.ChatId && adding.TgChatMessageId == tdMsg.Id)) {
                         
-                        var tgMessageRaw = MessageConverter.ConvertToTgMessageRaw(tdMsg);
-                        collectionForAdding.Add(tgMessageRaw);
+                        var tgMessageRaw = MessageConverter.ConvertToTgMessageRaw(tdMsg, SoanxTdUpdateType.None);
+                        CollectionForStoring.Add(tgMessageRaw);
                         addingCounter++;
                     } else {
                         locLog.Verbose<Message>("Msg not added into collection: {@tdMsg}", tdMsg);
@@ -107,24 +104,8 @@ public class TgMessageGrabbingWorker: ITelegramWorker {
                 locLog.Information("OUT IsCancellationRequested.");
                 return;
             }
-            Task.Delay(appSettings.TgGrabbingSettings.ReadingMessagesInterval).Wait();
+            Task.Delay(TgGrabbingSettings.ReadingMessagesInterval).Wait();
         }
         locLog.Information("OUT");
-    }
-
-    private async Task SaveTgMessagesRaws(ConcurrentBag<TgMessageRaw> collectionForStoring, CancellationToken cancellationToken) {
-        var locLog = log.ForContext("method", "SaveTgMessagesRaws()");
-        locLog.Information("IN");
-
-        while (!cancellationToken.IsCancellationRequested) {
-            var messagesList = collectionForStoring.Take(appSettings.TgGrabbingSettings.SavingMessagesBatchSize).ToList();
-            
-            if (messagesList.Count > 0) {
-                locLog.Information("msg in collectionForStoring = {allCollection}, taken to save = {takenCount}", collectionForStoring.Count, messagesList.Count);
-                await tgRepository.SaveTgMessageRawList(messagesList);
-            }
-            Task.Delay(appSettings.TgGrabbingSettings.SavingMessagesRunsInterval).Wait();
-        }
-        locLog.Information("OUT. CancellationToken has been triggered");
     }
 }

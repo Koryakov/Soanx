@@ -31,8 +31,8 @@ namespace Soanx.TelegramAnalyzer {
         //chatId, eventType, pluginGuid
 
         public Dictionary<Guid, PluginData> PluginsDictionary { get; private set; }
-        public Dictionary<long, Dictionary<UpdateType, List<Guid>>> ChatEventPluginDictionary { get; private set; }
-        public Dictionary<UpdateType, List<Guid>> EventsTable { get; private set; }
+        public Dictionary<long, Dictionary<SoanxTdUpdateType, List<Guid>>> ChatEventPluginDictionary { get; private set; }
+        public Dictionary<SoanxTdUpdateType, List<Guid>> EventsTable { get; private set; }
 
         public TgWorkerManager() {
            
@@ -44,10 +44,10 @@ namespace Soanx.TelegramAnalyzer {
             config.GetSection("WorkerPlugins").Bind(PluginSettings);
         }
         private async Task InitEventsTable() {
-            EventsTable = new Dictionary<UpdateType, List<Guid>>();
-            ChatEventPluginDictionary = new Dictionary<long, Dictionary<UpdateType, List<Guid>>>();
+            EventsTable = new Dictionary<SoanxTdUpdateType, List<Guid>>();
+            ChatEventPluginDictionary = new Dictionary<long, Dictionary<SoanxTdUpdateType, List<Guid>>>();
             
-            foreach (var enumItem in Enum.GetValues<UpdateType>()) {
+            foreach (var enumItem in Enum.GetValues<SoanxTdUpdateType>()) {
                 EventsTable.Add(enumItem, new List<Guid>());
             }
 
@@ -77,7 +77,7 @@ namespace Soanx.TelegramAnalyzer {
 
         }
 
-        public IEnumerable<ITgWorker> CreateWorkersForEvent(long chatId, UpdateType eventType) {
+        public IEnumerable<ITgWorker> CreateWorkersForEvent(long chatId, SoanxTdUpdateType eventType) {
             List<ITgWorker> list = new();
             if(ChatEventPluginDictionary.ContainsKey(chatId)) {
                 List<Guid> pluginGuids;
