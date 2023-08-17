@@ -90,8 +90,8 @@ public class TgEngine {
         return tdMessages;
     }
 
-    public List<TgMessage> ConvertToSoanxMessages(List<Message> rawMessages) {
-        List<TgMessage> convertedMessages = new();
+    public List<TgMessage2> ConvertToSoanxMessages(List<Message> rawMessages) {
+        List<TgMessage2> convertedMessages = new();
         var textMessages = rawMessages.Where(r => r.Content.DataType == "messageText").ToList();
         foreach (var txtMessage in textMessages) {
             convertedMessages.Add(MessageConverter
@@ -100,11 +100,11 @@ public class TgEngine {
         return convertedMessages;
     }
 
-    public async Task<int> SaveTgMessages(List<TgMessage> tgMessages) {
+    public async Task<int> SaveTgMessages(List<TgMessage2> tgMessages) {
         return await tgRepository.AddTgMessageAsync(tgMessages);
     }
 
-    public async Task FormilizeMessages(List<TgMessage> tgMessages) {
+    public async Task FormilizeMessages(List<TgMessage2> tgMessages) {
         if(openAiApiClient == null) {
             var openAiParameters = appSettings.Config.GetRequiredSection("OpenAiParameters").Get<OpenAiParameters>();
             openAiApiClient = new ApiClient(openAiParameters, null);
@@ -112,9 +112,9 @@ public class TgEngine {
         //await openAiApiClient.FormalizeExchangeMessages();
     }
 
-    public async Task<List<TgMessage>> LoadTgMessagesFromDbAsync(long chatId, DateTime sinceDate) {
+    public async Task<List<TgMessage2>> LoadTgMessagesFromDbAsync(long chatId, DateTime sinceDate) {
         //Temporary solution. Specific worker plugin chats must be specified.
-        List<TgMessage> tgMessages = await tgRepository.GetLastNotExtractedTgMessages(chatId, sinceDate, 20);
+        List<TgMessage2> tgMessages = await tgRepository.GetLastNotExtractedTgMessages(chatId, sinceDate, 20);
 
         return tgMessages;
     }
@@ -168,7 +168,7 @@ public class TgEngine {
         logger.Trace($"IN ProcessNewMessages");
         try {
             //TODO: store messages to Queue
-            TgMessage tgMessage = MessageConverter.ConvertTgMessage(update.Message, SoanxTdUpdateType.UpdateNewMessage, JsonSerializer.Serialize(update));
+            TgMessage2 tgMessage = MessageConverter.ConvertTgMessage(update.Message, SoanxTdUpdateType.UpdateNewMessage, JsonSerializer.Serialize(update));
             await tgRepository.AddTgMessageAsync(tgMessage);
 
             IEnumerable<ITgWorker> workerInstances = workerManager.CreateWorkersForEvent(update.Message.ChatId, SoanxTdUpdateType.UpdateNewMessage);

@@ -34,31 +34,33 @@ internal class Program {
 public class SoanxConsole {
 
     public async Task Main(AppSettingsHelper appSettings) {
+        CancellationTokenSource cancellationTokenSource = new();
+        
         var log = Log.ForContext<SoanxConsole>();
         log.Information("Soanx logging started...");
         var collectionForStoring = new ConcurrentBag<TgMessageRaw> ();
+        List<Task> tasks = new List<Task>();
 
         TdClient tdClient = new TdClient();
         tdClient.Bindings.SetLogVerbosityLevel(TdLogLevel.Fatal);
 
         ITdClientAuthorizer tdClientAuthorizer = new TdClientAuthorizer(tdClient, appSettings.TdLibParameters, appSettings.BotSettings);
-        CancellationTokenSource cancellationTokenSource = new();
+        await tdClientAuthorizer.Run();
 
-        List<Task> tasks = new List<Task>();
-
-        ITelegramWorker tgReader = new TgMessageGrabbingWorker(tdClientAuthorizer, collectionForStoring, appSettings.TgGrabbingSettings, appSettings.TgGrabbingChats);
+        ITelegramWorker tgReader = new TgMessageGrabbingWorker(tdClient, collectionForStoring, appSettings.TgGrabbingSettings, appSettings.TgGrabbingChats);
+        ITelegramWorker tgEventsWorker = new TgMessageEventsWorker(tdClient, collectionForStoring, appSettings.TgListeningChats);
         ITelegramWorker savingWorker = new TgMessageSavingWorker(appSettings.TgMessageSavingSettings, collectionForStoring);
         
-        tasks.Add(Task.Run(() => tgReader.Run(cancellationTokenSource.Token)));
-        tasks.Add(Task.Run(() => savingWorker.Run(cancellationTokenSource.Token)));
+        //tasks.Add(Task.Run(() => tgReader.Run(cancellationTokenSource.Token)));
+        tasks.Add(Task.Run(() => tgEventsWorker.Run(cancellationTokenSource.Token)));
+        //tasks.Add(Task.Run(() => savingWorker.Run(cancellationTokenSource.Token)));
 
-        var userInputTask = Task.Run(() =>
-        {
-            Console.WriteLine("Press ENTER to exit from application");
-            Console.ReadLine();
+        _ = Task.Run(() => {
+            Console.WriteLine("Press any key to exit");
+            Console.ReadKey();
             cancellationTokenSource.Cancel();
         });
         await Task.WhenAll(tasks);
     }
-
+     
 }

@@ -31,10 +31,10 @@ namespace Soanx.TelegramAnalyzer
 
     public static class MessageConverter {
 
-        public static TgMessage ConvertTgMessage(TdLib.TdApi.Message message, SoanxTdUpdateType updateType, string rawData) {
+        public static TgMessage2 ConvertTgMessage(TdLib.TdApi.Message message, SoanxTdUpdateType updateType, string rawData) {
             //TODO: store messages to Queue
             //((TdLib.TdApi.MessageContent.MessageText)update.Message.Content).Text.Text
-            TgMessage tgMessage = new() {
+            TgMessage2 tgMessage = new() {
                 TgMessageId = message.Id,
                 UpdateType = updateType,
                 TgChatId = message.ChatId,
@@ -48,7 +48,7 @@ namespace Soanx.TelegramAnalyzer
             return tgMessage;
         }
 
-        private static void InitializeMessageContentInfo(ref TgMessage tgMessage, MessageContent messageContent) {
+        private static void InitializeMessageContentInfo(ref TgMessage2 tgMessage, MessageContent messageContent) {
             switch (messageContent) {
                 case MessageContent.MessageText:
                     tgMessage.MessageContentType = MessageContentType.MessageText;
@@ -61,7 +61,7 @@ namespace Soanx.TelegramAnalyzer
             }
         }
 
-        private static void InitializeSenderInfo(ref TgMessage tgMessage, MessageSender sender) {
+        private static void InitializeSenderInfo(ref TgMessage2 tgMessage, MessageSender sender) {
             switch (sender) {
                 case MessageSender.MessageSenderChat:
                     tgMessage.SenderType = SenderType.Chat;

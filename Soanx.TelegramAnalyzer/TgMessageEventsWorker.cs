@@ -18,53 +18,79 @@ using Serilog.Context;
 
 namespace Soanx.TelegramAnalyzer;
 public class TgMessageEventsWorker: ITelegramWorker {
+
+    private ManualResetEvent resetEvent = new(false);
     private IConfiguration config;
     private TdLibParametersModel tdLibParameters;
     private AppSettingsHelper appSettings = new();
     private Serilog.ILogger log = Log.ForContext<TgMessageEventsWorker>();
-    private ConcurrentBag<TgMessageRaw> tgRawMessagesForStoring = new();
-    protected virtual TelegramRepository tgRepository { get; set; }
-    public ITdClientAuthorizer TdClientAuthorizer { get; private set; }
+    private HashSet<long> listeningChatIds = new();
+
     public TdClient TdClient { get; private set; }
     public ConcurrentBag<TgMessageRaw> CollectionForStoring { get; private set; }
+    public List<TgListeningChat> TgListeningChats { get; private set; }
 
-    public TgMessageEventsWorker(ITdClientAuthorizer tdClientAuthorizer, ConcurrentBag<TgMessageRaw> collectionForStoring) {
-        TdClientAuthorizer = tdClientAuthorizer;
-        TdClient = TdClientAuthorizer.TdClient;
+    public TgMessageEventsWorker(TdClient tdClient, ConcurrentBag<TgMessageRaw> collectionForStoring,
+        List<TgListeningChat> tgListeningChats) {
+
+        TdClient = tdClient;
+        tgListeningChats.ForEach(c => listeningChatIds.Add(c.ChatId));
         CollectionForStoring = collectionForStoring;
-        tgRepository = new TelegramRepository(appSettings.SoanxConnectionString);
+        TgListeningChats = tgListeningChats;
     }
 
     public async Task Run(CancellationToken cancellationToken) {
         log.Information("IN Run(). Listening chats: {@TgListeningChats}", appSettings.TgListeningChats);
+        cancellationToken.Register(() => resetEvent.Set());
 
         SubscribeToUpdateReceivedEvent();
-        await TdClientAuthorizer.Run();
-        
+        resetEvent.WaitOne();
+
         log.Information("OUT Run()");
     }
 
     public virtual void SubscribeToUpdateReceivedEvent() {
         TdClient.UpdateReceived += async (_, update) => { await UpdateReceived(update); };
     }
-
+    
     protected async Task UpdateReceived(TdApi.Update update) {
-        Console.WriteLine($"{update.GetType()}");
+        var locLog = log.ForContext("method", "UpdateReceived()").ForContext("update type", update);
+        //locLog.Verbose("IN");
 
         switch (update) {
             case TdApi.Update.UpdateNewMessage:
+                var newMsgUpdate = (UpdateNewMessage)update;
+                
+                if(!IsListeningChat(newMsgUpdate.Message.ChatId)) {
+                    return;
+                }
                 await ProcessNewMessages((UpdateNewMessage)update);
                 break;
             case TdApi.Update.UpdateMessageContent:
+                var contentMsgUpdate = (UpdateMessageContent)update;
+
+                if (!IsListeningChat(contentMsgUpdate.ChatId)) {
+                    return;
+                }
                 await ProcessEditedMessage((UpdateMessageContent)update);
                 break;
             case TdApi.Update.UpdateDeleteMessages:
+                var deleteMsgUpdate = (UpdateDeleteMessages)update;
+
+                if (!IsListeningChat(deleteMsgUpdate.ChatId)) {
+                    return;
+                }
                 await ProcessDeletedMessages((UpdateDeleteMessages)update);
                 break;
             default:
                 break;
         }
     }
+
+    private bool IsListeningChat(long chatId) {
+        return listeningChatIds.Contains(chatId);
+    }
+
 
     private async Task ProcessNewMessages(UpdateNewMessage update) {
         var locLog = log.ForContext("method", "ProcessNewMessages()");

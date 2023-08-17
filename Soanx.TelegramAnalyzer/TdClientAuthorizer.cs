@@ -16,8 +16,9 @@ public class TdClientAuthorizer : ITdClientAuthorizer {
     
     private bool authNeeded;
     private bool passwordNeeded;
+    private EventHandler<TdApi.Update> updateReceivedHandler;
     private readonly ManualResetEventSlim ReadyToAuthenticate = new();
-    private readonly ManualResetEventSlim ReadyToFinish = new();
+    //private readonly ManualResetEventSlim ReadyToFinish = new();
     public TdClient TdClient { get; private set; }
     public TdLibParametersModel TdLibParameters { get; private set; }
     public TelegramBotSettings BotSettings { get; private set; }
@@ -34,22 +35,26 @@ public class TdClientAuthorizer : ITdClientAuthorizer {
         log.Information("Run() started...");
         SubscribeToUpdateReceivedEvent();
         ReadyToAuthenticate.Wait();
-        UnsubscribeToUpdateReceivedEvent();
 
         if (authNeeded) {
             await HandleAuthentication();
         }
+        UnsubscribeToUpdateReceivedEvent();
         log.Information("Run() ended");
     }
 
     public virtual void SubscribeToUpdateReceivedEvent() {
         log.Information("SubscribeToUpdateReceivedEvent()...");
-        TdClient.UpdateReceived += async (_, update) => { await UpdateReceived(update); };
+        updateReceivedHandler = async (_, update) => { await UpdateReceived(update); };
+        TdClient.UpdateReceived += updateReceivedHandler;
     }
 
     public virtual void UnsubscribeToUpdateReceivedEvent() {
-        log.Information("UnsubscribeToUpdateReceivedEvent()...");
-        TdClient.UpdateReceived -= async (_, update) => { await UpdateReceived(update); };
+        if (updateReceivedHandler != null) {
+            log.Information("UnsubscribeToUpdateReceivedEvent()...");
+            TdClient.UpdateReceived -= updateReceivedHandler;
+            updateReceivedHandler = null;
+        }
     }
 
     public virtual async Task HandleAuthentication() {
@@ -96,22 +101,27 @@ public class TdClientAuthorizer : ITdClientAuthorizer {
             case TdApi.Update.UpdateAuthorizationState { AuthorizationState: TdApi.AuthorizationState.AuthorizationStateWaitPhoneNumber }:
             case TdApi.Update.UpdateAuthorizationState { AuthorizationState: TdApi.AuthorizationState.AuthorizationStateWaitCode }:
                 authNeeded = true;
-                ReadyToAuthenticate.Set();
+                SetReadyToAuthenticate();
                 break;
 
             case TdApi.Update.UpdateAuthorizationState { AuthorizationState: TdApi.AuthorizationState.AuthorizationStateWaitPassword }:
                 authNeeded = true;
                 passwordNeeded = true;
-                ReadyToAuthenticate.Set();
+                SetReadyToAuthenticate();
                 break;
 
             case TdApi.Update.UpdateUser:
-                ReadyToAuthenticate.Set();
+                SetReadyToAuthenticate();
                 break;
          
             default:
                 break;
         }
+    }
+
+    private void SetReadyToAuthenticate() {
+        ReadyToAuthenticate.Set();
+        log.Verbose("ReadyToAuthenticate has been set.");
     }
 
     public async Task Authorize() {

@@ -5,7 +5,7 @@ namespace Soanx.Repositories
 {
     public class SoanxDbContext : DbContext {
         private readonly string connectionString;
-        public DbSet<TgMessage> TgMessage { get; set; }
+        public DbSet<TgMessage2> TgMessage { get; set; }
         public DbSet<TgMessageRaw> TgMessageRaw { get; set; }
 
         public SoanxDbContext(DbContextOptions<SoanxDbContext> options) : base(options) {

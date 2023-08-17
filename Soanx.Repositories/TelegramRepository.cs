@@ -18,7 +18,7 @@ namespace Soanx.Repositories
             log = Log.ForContext<TelegramRepository>();
         }
 
-        public async Task AddTgMessageAsync(TgMessage tgMessage) {
+        public async Task AddTgMessageAsync(TgMessage2 tgMessage) {
             log.Debug($"IN AddTgMessageAsync()");
             try {
                 using (var db = CreateContext()) {
@@ -32,7 +32,7 @@ namespace Soanx.Repositories
             }
         }
 
-        public async Task<int> AddTgMessageAsync(List<TgMessage> tgMessageList) {
+        public async Task<int> AddTgMessageAsync(List<TgMessage2> tgMessageList) {
             try {
                 using (var db = CreateContext()) {
                     await db.TgMessage.AddRangeAsync(tgMessageList);
@@ -56,7 +56,7 @@ namespace Soanx.Repositories
         //    }
         //}
 
-        public async Task<List<TgMessage>> GetLastNotExtractedTgMessages(long chatId, DateTime sinceDate, int limit) {
+        public async Task<List<TgMessage2>> GetLastNotExtractedTgMessages(long chatId, DateTime sinceDate, int limit) {
             using (var db = CreateContext()) {
                 //TODO: order must be changed to telegram message Date field - see RawData column. Date should be moved to separate table column.
                 return await db.TgMessage.Where(m => m.ExtractedFacts == null && m.CreatedDate <= sinceDate)

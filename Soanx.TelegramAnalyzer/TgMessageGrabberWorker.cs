@@ -23,18 +23,16 @@ public class TgMessageGrabbingWorker: ITelegramWorker {
     private TdLibParametersModel tdLibParameters;
     private object addingLockObj = new object();
     private Serilog.ILogger log = Log.ForContext<TgMessageGrabbingWorker>();
-    public ITdClientAuthorizer TdClientAuthorizer { get; private set; }
     public TdClient TdClient { get; private set; }
     public TgMessageGrabbingSettings TgGrabbingSettings { get; private set; }
     public List<TgGrabbingChat> TgGrabbingChats { get; private set; }
     public ConcurrentBag<TgMessageRaw> CollectionForStoring { get; private set; }
 
-    public TgMessageGrabbingWorker(ITdClientAuthorizer tdClientAuthorizer, ConcurrentBag<TgMessageRaw> collectionForStoring,
+    public TgMessageGrabbingWorker(TdClient tdClient, ConcurrentBag<TgMessageRaw> collectionForStoring,
         TgMessageGrabbingSettings tgGrabbingSettings, List<TgGrabbingChat> tgGrabbingChats) {
 
+        TdClient = tdClient;
         CollectionForStoring = collectionForStoring;
-        TdClientAuthorizer = tdClientAuthorizer;
-        TdClient = TdClientAuthorizer.TdClient;
         TgGrabbingSettings = tgGrabbingSettings;
         TgGrabbingChats = tgGrabbingChats;
 
@@ -42,8 +40,6 @@ public class TgMessageGrabbingWorker: ITelegramWorker {
 
     public async Task Run(CancellationToken cancellationToken) {
         log.Information("IN Run(). Grabbing settings: {@TgMessageGrabbingSettings}");
-
-        await TdClientAuthorizer.Run();
 
         List<Task> tasks = new List<Task>();
         foreach(var chatSetting in TgGrabbingChats) {
