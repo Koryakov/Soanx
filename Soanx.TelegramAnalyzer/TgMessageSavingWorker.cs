@@ -14,15 +14,16 @@ namespace Soanx.TelegramAnalyzer {
     public class TgMessageSavingWorker : ITelegramWorker {
 
         private static Serilog.ILogger log = Log.ForContext<TgMessageSavingWorker>();
-        private AppSettingsHelper appSettings = new();
+        private TelegramRepository tgRepository;
         public ConcurrentBag<TgMessageRaw> CollectionForStoring { get; private set; }
         public int BatchSize { get; private set; }
         public int RunsInterval { get; private set; }
-        public TelegramRepository tgRepository { get; private set; }
-        
-        public TgMessageSavingWorker(TgMessageSavingSettings tgMessageSavingSettings, ConcurrentBag<TgMessageRaw> collectionForStoring) {
+
+        public TgMessageSavingWorker(TgMessageSavingSettings tgMessageSavingSettings, ConcurrentBag<TgMessageRaw> collectionForStoring,
+            string soanxConnectionString) {
+
             CollectionForStoring = collectionForStoring;
-            tgRepository = new TelegramRepository(appSettings.SoanxConnectionString);
+            tgRepository = new TelegramRepository(soanxConnectionString);
             BatchSize = tgMessageSavingSettings.BatchSize;
             RunsInterval = tgMessageSavingSettings.RunsInterval;
         }

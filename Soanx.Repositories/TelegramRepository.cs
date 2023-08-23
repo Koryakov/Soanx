@@ -22,7 +22,7 @@ namespace Soanx.Repositories
             log.Debug($"IN AddTgMessageAsync()");
             try {
                 using (var db = CreateContext()) {
-                    await db.TgMessage.AddAsync(tgMessage);
+                    await db.TgMessage2.AddAsync(tgMessage);
                     bool hasChanges = db.ChangeTracker.HasChanges();
                     int count = await db.SaveChangesAsync();
                     log.Debug($"OUT AddTgMessageAsync() hasChanges = {hasChanges}; count = {count}; tgMssageId = {tgMessage.TgMessageId}");
@@ -35,7 +35,7 @@ namespace Soanx.Repositories
         public async Task<int> AddTgMessageAsync(List<TgMessage2> tgMessageList) {
             try {
                 using (var db = CreateContext()) {
-                    await db.TgMessage.AddRangeAsync(tgMessageList);
+                    await db.TgMessage2.AddRangeAsync(tgMessageList);
                     //int count = await db.SaveChangesAsync();
                     int count = await db.SaveChangesAsync();
                     log.Debug($"OUT AddTgMessageAsync() count = {count};");
@@ -59,7 +59,7 @@ namespace Soanx.Repositories
         public async Task<List<TgMessage2>> GetLastNotExtractedTgMessages(long chatId, DateTime sinceDate, int limit) {
             using (var db = CreateContext()) {
                 //TODO: order must be changed to telegram message Date field - see RawData column. Date should be moved to separate table column.
-                return await db.TgMessage.Where(m => m.ExtractedFacts == null && m.CreatedDate <= sinceDate)
+                return await db.TgMessage2.Where(m => m.ExtractedFacts == null && m.CreatedDate <= sinceDate)
                     .OrderByDescending(m => m.CreatedDate).Take(limit).ToListAsync();
             }
         }
@@ -108,6 +108,21 @@ namespace Soanx.Repositories
                         return false;
                     }
                 }
+            }
+        }
+
+        public async Task AddTgMessage(TgMessage newTgMessage) {
+            var locLog = log.ForContext("method", "AddTgMessage()");
+            locLog.Verbose("IN");
+
+            try {
+                using (var db = CreateContext()) {
+                    await db.TgMessage.AddAsync(newTgMessage);
+                    await db.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex) {
+                locLog.Error(ex, "Error");
             }
         }
     }

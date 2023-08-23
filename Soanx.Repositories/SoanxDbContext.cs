@@ -5,7 +5,8 @@ namespace Soanx.Repositories
 {
     public class SoanxDbContext : DbContext {
         private readonly string connectionString;
-        public DbSet<TgMessage2> TgMessage { get; set; }
+        public DbSet<TgMessage> TgMessage { get; set; }
+        public DbSet<TgMessage2> TgMessage2 { get; set; }
         public DbSet<TgMessageRaw> TgMessageRaw { get; set; }
 
         public SoanxDbContext(DbContextOptions<SoanxDbContext> options) : base(options) {
@@ -22,9 +23,10 @@ namespace Soanx.Repositories
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
-            modelBuilder.Entity<TgMessageRaw>()
-                .HasIndex(p => new { p.TgChatId, p.TgChatMessageId, p.UpdateType })
-                .IsUnique();
+            
+            //modelBuilder.Entity<TgMessageRaw>()
+            //    .HasIndex(p => new { p.TgChatId, p.TgChatMessageId, p.UpdateType })
+            //    .IsUnique();
         }
     }
 }

@@ -16,24 +16,14 @@ public class TgMessage {
 
     [Key]
     public long Id { get; set; }
-    public SoanxTdUpdateType UpdateType { get; set; }
-    public SenderType SenderType { get; set; }
     public long TgChatId { get; set; }
     public long TgMessageId { get; set; }
     public long SenderId { get; set; }
-    public DateTime CreatedDate { get; set; }
-    public string RawData { get; set; }
-    [Column(TypeName = "jsonb")]
-    public string ExtractedFacts { get; set; }
-}
-
-public class TgMessageContent {
-
-    [Key]
-    public long Id { get; set; }
-    public TgMessage TgMessage { get; set; }
-    public MessageContentType MessageContentType { get; set; }
     public string Text { get; set; }
+    public SenderType SenderType { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public SoanxTdUpdateType UpdateType { get; set; }
+    public MessageContentType ContentType { get; set; }
 }
 
 

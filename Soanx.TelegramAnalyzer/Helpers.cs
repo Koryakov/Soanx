@@ -106,6 +106,50 @@ namespace Soanx.TelegramAnalyzer
             return messageRaw;
         }
 
+        public static TgMessage ConvertToTgMessage(UpdateNewMessage message) {
+
+            TgMessage tgMessage = new() {
+                TgChatId = message.Message.ChatId,
+                TgMessageId = message.Message.Id,
+                UpdateType = SoanxTdUpdateType.UpdateNewMessage,
+                CreatedDate = DateTimeHelper.FromUnixTime(message.Message.Date),
+            };
+            InitializeMessageContentInfo(ref tgMessage, message.Message.Content);
+            InitializeSenderInfo(ref tgMessage, message.Message.SenderId);
+
+            return tgMessage;
+        }
+
+        private static void InitializeMessageContentInfo(ref TgMessage tgMessage, MessageContent messageContent) {
+            switch (messageContent) {
+                case MessageContent.MessageText:
+                    tgMessage.ContentType = MessageContentType.MessageText;
+                    tgMessage.Text = ((MessageText)messageContent).Text.Text;
+                    break;
+                default:
+                    tgMessage.ContentType = MessageContentType.None;
+                    tgMessage.Text = string.Empty;
+                    break;
+            }
+        }
+
+        private static void InitializeSenderInfo(ref TgMessage tgMessage, MessageSender sender) {
+            switch (sender) {
+                case MessageSender.MessageSenderChat:
+                    tgMessage.SenderType = SenderType.Chat;
+                    tgMessage.SenderId = ((MessageSenderChat)sender).ChatId;
+                    break;
+                case MessageSender.MessageSenderUser:
+                    tgMessage.SenderType = SenderType.User;
+                    tgMessage.SenderId = ((MessageSenderUser)sender).UserId;
+                    break;
+                default:
+                    tgMessage.SenderType = SenderType.Unknown;
+                    tgMessage.SenderId = 0;
+                    break;
+            }
+        }
+
         public static TgMessageRaw ConvertToTgMessageRaw(UpdateNewMessage message) {
 
             TgMessageRaw messageRaw = new() {

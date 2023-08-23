@@ -22,25 +22,24 @@ public class TgMessageEventsWorker: ITelegramWorker {
     private ManualResetEvent resetEvent = new(false);
     private IConfiguration config;
     private TdLibParametersModel tdLibParameters;
-    private AppSettingsHelper appSettings = new();
     private Serilog.ILogger log = Log.ForContext<TgMessageEventsWorker>();
-    private HashSet<long> listeningChatIds = new();
+    private HashSet<long> tgListeningChats = new();
+    private TelegramRepository tgRepository;
 
     public TdClient TdClient { get; private set; }
-    public ConcurrentBag<TgMessageRaw> CollectionForStoring { get; private set; }
     public List<TgListeningChat> TgListeningChats { get; private set; }
 
-    public TgMessageEventsWorker(TdClient tdClient, ConcurrentBag<TgMessageRaw> collectionForStoring,
-        List<TgListeningChat> tgListeningChats) {
+    public TgMessageEventsWorker(TdClient tdClient, List<TgListeningChat> tgListeningChats,
+        string soanxConnectionString) {
 
         TdClient = tdClient;
-        tgListeningChats.ForEach(c => listeningChatIds.Add(c.ChatId));
-        CollectionForStoring = collectionForStoring;
+        tgListeningChats.ForEach(c => this.tgListeningChats.Add(c.ChatId));
         TgListeningChats = tgListeningChats;
+        tgRepository = new TelegramRepository(soanxConnectionString);
     }
 
     public async Task Run(CancellationToken cancellationToken) {
-        log.Information("IN Run(). Listening chats: {@TgListeningChats}", appSettings.TgListeningChats);
+        log.Information("IN Run(). Listening chats: {@TgListeningChats}", tgListeningChats);
         cancellationToken.Register(() => resetEvent.Set());
 
         SubscribeToUpdateReceivedEvent();
@@ -55,7 +54,6 @@ public class TgMessageEventsWorker: ITelegramWorker {
     
     protected async Task UpdateReceived(TdApi.Update update) {
         var locLog = log.ForContext("method", "UpdateReceived()").ForContext("update type", update);
-        //locLog.Verbose("IN");
 
         switch (update) {
             case TdApi.Update.UpdateNewMessage:
@@ -64,7 +62,7 @@ public class TgMessageEventsWorker: ITelegramWorker {
                 if(!IsListeningChat(newMsgUpdate.Message.ChatId)) {
                     return;
                 }
-                await ProcessNewMessages((UpdateNewMessage)update);
+                await ProcessNewMessage((UpdateNewMessage)update);
                 break;
             case TdApi.Update.UpdateMessageContent:
                 var contentMsgUpdate = (UpdateMessageContent)update;
@@ -88,15 +86,15 @@ public class TgMessageEventsWorker: ITelegramWorker {
     }
 
     private bool IsListeningChat(long chatId) {
-        return listeningChatIds.Contains(chatId);
+        return tgListeningChats.Contains(chatId);
     }
 
 
-    private async Task ProcessNewMessages(UpdateNewMessage update) {
-        var locLog = log.ForContext("method", "ProcessNewMessages()");
+    private async Task ProcessNewMessage(UpdateNewMessage update) {
+        var locLog = log.ForContext("method", "ProcessNewMessage()");
         try {
             var tgMessageRaw = MessageConverter.ConvertToTgMessageRaw(update);
-            CollectionForStoring.Add(tgMessageRaw);
+            
         }
         catch (Exception ex) {
             locLog.Error(ex, $"Error");

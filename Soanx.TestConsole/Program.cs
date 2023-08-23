@@ -48,8 +48,8 @@ public class SoanxConsole {
         await tdClientAuthorizer.Run();
 
         ITelegramWorker tgReader = new TgMessageGrabbingWorker(tdClient, collectionForStoring, appSettings.TgGrabbingSettings, appSettings.TgGrabbingChats);
-        ITelegramWorker tgEventsWorker = new TgMessageEventsWorker(tdClient, collectionForStoring, appSettings.TgListeningChats);
-        ITelegramWorker savingWorker = new TgMessageSavingWorker(appSettings.TgMessageSavingSettings, collectionForStoring);
+        ITelegramWorker tgEventsWorker = new TgMessageEventsWorker(tdClient, appSettings.TgListeningChats, appSettings.SoanxConnectionString);
+        ITelegramWorker tgSavingWorker = new TgMessageSavingWorker(appSettings.TgMessageSavingSettings, collectionForStoring, appSettings.SoanxConnectionString);
         
         //tasks.Add(Task.Run(() => tgReader.Run(cancellationTokenSource.Token)));
         tasks.Add(Task.Run(() => tgEventsWorker.Run(cancellationTokenSource.Token)));
