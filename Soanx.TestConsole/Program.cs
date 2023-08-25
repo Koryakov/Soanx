@@ -38,7 +38,7 @@ public class SoanxConsole {
         
         var log = Log.ForContext<SoanxConsole>();
         log.Information("Soanx logging started...");
-        var collectionForStoring = new ConcurrentBag<TgMessageRaw> ();
+        var collectionForStoring = new ConcurrentBag<TgMessage> ();
         List<Task> tasks = new List<Task>();
 
         TdClient tdClient = new TdClient();

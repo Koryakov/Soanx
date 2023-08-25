@@ -20,11 +20,9 @@ namespace Soanx.TelegramAnalyzer;
 public class TgMessageEventsWorker: ITelegramWorker {
 
     private ManualResetEvent resetEvent = new(false);
-    private IConfiguration config;
-    private TdLibParametersModel tdLibParameters;
     private Serilog.ILogger log = Log.ForContext<TgMessageEventsWorker>();
     private HashSet<long> tgListeningChats = new();
-    private TelegramRepository tgRepository;
+    private TgRepository tgRepository;
 
     public TdClient TdClient { get; private set; }
     public List<TgListeningChat> TgListeningChats { get; private set; }
@@ -35,7 +33,7 @@ public class TgMessageEventsWorker: ITelegramWorker {
         TdClient = tdClient;
         tgListeningChats.ForEach(c => this.tgListeningChats.Add(c.ChatId));
         TgListeningChats = tgListeningChats;
-        tgRepository = new TelegramRepository(soanxConnectionString);
+        tgRepository = new TgRepository(soanxConnectionString);
     }
 
     public async Task Run(CancellationToken cancellationToken) {
@@ -92,8 +90,10 @@ public class TgMessageEventsWorker: ITelegramWorker {
 
     private async Task ProcessNewMessage(UpdateNewMessage update) {
         var locLog = log.ForContext("method", "ProcessNewMessage()");
+        locLog.Information("IN");
         try {
-            var tgMessageRaw = MessageConverter.ConvertToTgMessageRaw(update);
+            var tgMessage = MessageConverter.ConvertToTgMessage(update);
+            await tgRepository.AddTgMessage(tgMessage);
             
         }
         catch (Exception ex) {
@@ -101,20 +101,29 @@ public class TgMessageEventsWorker: ITelegramWorker {
         }
     }
 
-    private async Task ProcessEditedMessage(UpdateMessageContent update) {
-        var locLog = log.ForContext("method", "UpdateMessageContent()");
+    private async Task ProcessEditedMessage(UpdateMessageContent updateContent) {
+        var locLog = log.ForContext("method", "ProcessEditedMessage()");
+        locLog.Information("IN");
+
         try {
+            var tgMessage = MessageConverter.ConvertToTgMessage(updateContent);
+            await tgRepository.AddTgMessage(tgMessage);
         }
         catch (Exception ex) {
             locLog.Error(ex, $"Error");
         }
     }
     
-    private async Task ProcessDeletedMessages(UpdateDeleteMessages update) {
-     
-    }
-
-    private async Task ProcessMessagesUpdates(TdApi.Update update) {
+    private async Task ProcessDeletedMessages(UpdateDeleteMessages delete) {
+        var locLog = log.ForContext("method", "ProcessDeletedMessages()");
+        locLog.Information("IN");
+        try {
+            var tgMessageList = MessageConverter.ConvertToTgMessageCollection(delete);
+            await tgRepository.AddTgMessage(tgMessageList);
+        }
+        catch (Exception ex) {
+            locLog.Error(ex, $"Error");
+        }
     }
 
 }

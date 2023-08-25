@@ -19,16 +19,14 @@ using Serilog.Context;
 namespace Soanx.TelegramAnalyzer;
 public class TgMessageGrabbingWorker: ITelegramWorker {
 
-    private IConfiguration config;
-    private TdLibParametersModel tdLibParameters;
     private object addingLockObj = new object();
     private Serilog.ILogger log = Log.ForContext<TgMessageGrabbingWorker>();
     public TdClient TdClient { get; private set; }
     public TgMessageGrabbingSettings TgGrabbingSettings { get; private set; }
     public List<TgGrabbingChat> TgGrabbingChats { get; private set; }
-    public ConcurrentBag<TgMessageRaw> CollectionForStoring { get; private set; }
+    public ConcurrentBag<TgMessage> CollectionForStoring { get; private set; }
 
-    public TgMessageGrabbingWorker(TdClient tdClient, ConcurrentBag<TgMessageRaw> collectionForStoring,
+    public TgMessageGrabbingWorker(TdClient tdClient, ConcurrentBag<TgMessage> collectionForStoring,
         TgMessageGrabbingSettings tgGrabbingSettings, List<TgGrabbingChat> tgGrabbingChats) {
 
         TdClient = tdClient;
@@ -56,7 +54,7 @@ public class TgMessageGrabbingWorker: ITelegramWorker {
         var locLog = log.ForContext("method", "ReadTdMessagesIntoCollection()").ForContext("chatId", grabbingChat.ChatId);
         locLog.Information("IN");
 
-        int minUnixDate = DateTimeHelper.ToUnixTime(DateTime.Now);
+        int minUnixDate = DateTimeHelper.ToUnixTime(DateTime.UtcNow);
         var unixFromDate = DateTimeHelper.ToUnixTime(grabbingChat.ReadTillDate);
         long oldestMessageId = 0L;
         
@@ -84,9 +82,9 @@ public class TgMessageGrabbingWorker: ITelegramWorker {
                     var tdMsg = msgBundle.Messages_[i];
 
                     if (!CollectionForStoring.Any(adding =>
-                        adding.TgChatId == tdMsg.ChatId && adding.TgChatMessageId == tdMsg.Id)) {
+                        adding.TgChatId == tdMsg.ChatId && adding.TgMessageId == tdMsg.Id)) {
                         
-                        var tgMessageRaw = MessageConverter.ConvertToTgMessageRaw(tdMsg, SoanxTdUpdateType.None);
+                        var tgMessageRaw = MessageConverter.ConvertToTgMessage(tdMsg, SoanxTdUpdateType.None);
                         CollectionForStoring.Add(tgMessageRaw);
                         addingCounter++;
                     } else {

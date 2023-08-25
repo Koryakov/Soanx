@@ -14,16 +14,16 @@ namespace Soanx.TelegramAnalyzer {
     public class TgMessageSavingWorker : ITelegramWorker {
 
         private static Serilog.ILogger log = Log.ForContext<TgMessageSavingWorker>();
-        private TelegramRepository tgRepository;
-        public ConcurrentBag<TgMessageRaw> CollectionForStoring { get; private set; }
+        private TgRepository tgRepository;
+        public ConcurrentBag<TgMessage> CollectionForStoring { get; private set; }
         public int BatchSize { get; private set; }
         public int RunsInterval { get; private set; }
 
-        public TgMessageSavingWorker(TgMessageSavingSettings tgMessageSavingSettings, ConcurrentBag<TgMessageRaw> collectionForStoring,
+        public TgMessageSavingWorker(TgMessageSavingSettings tgMessageSavingSettings, ConcurrentBag<TgMessage> collectionForStoring,
             string soanxConnectionString) {
 
             CollectionForStoring = collectionForStoring;
-            tgRepository = new TelegramRepository(soanxConnectionString);
+            tgRepository = new TgRepository(soanxConnectionString);
             BatchSize = tgMessageSavingSettings.BatchSize;
             RunsInterval = tgMessageSavingSettings.RunsInterval;
         }
@@ -33,7 +33,7 @@ namespace Soanx.TelegramAnalyzer {
             locLog.Information("IN");
 
             while (!cancellationToken.IsCancellationRequested) {
-                var messagesList = new List<TgMessageRaw>(BatchSize);
+                var messagesList = new List<TgMessage>(BatchSize);
 
                 for (int i = 0; i < BatchSize; i++) {
                     if (CollectionForStoring.TryTake(out var item)) {
@@ -44,11 +44,14 @@ namespace Soanx.TelegramAnalyzer {
                 if (messagesList.Count > 0) {
                     locLog.Information("msg in collectionForStoring = {allCollection}, taken to save = {takenCount}", CollectionForStoring.Count, messagesList.Count);
 
-                    if (!await tgRepository.SaveTgMessageRawList(messagesList)) {
+                    try {
+                        await tgRepository.SaveTgMessageList(messagesList);
+                    
+                    } catch (Exception ex) {
                         foreach (var message in messagesList) {
                             CollectionForStoring.Add(message);
                         }
-                        locLog.Information("messages have been returned to the collectionForStoring.");
+                        locLog.Error(ex, "messages have been returned to the collectionForStoring.");
                     }
                 }
                 Task.Delay(RunsInterval).Wait();

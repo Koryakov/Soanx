@@ -86,7 +86,6 @@ public class FactsTests {
                 }
             }
         } catch (Exception ex) {
-            int t = 0;
         }
     }
 

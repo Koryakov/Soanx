@@ -106,18 +106,59 @@ namespace Soanx.TelegramAnalyzer
             return messageRaw;
         }
 
-        public static TgMessage ConvertToTgMessage(UpdateNewMessage message) {
+        public static TgMessage ConvertToTgMessage(TdApi.Message tdMessage, SoanxTdUpdateType updateType) {
+            var date = DateTimeHelper.FromUnixTime(tdMessage.Date);
+
+            TgMessage messageRaw = new() {
+                TgChatId = tdMessage.ChatId,
+                TgMessageId = tdMessage.Id,
+                UpdateType = updateType,
+                //TODO: check is local or UTC Datetime
+                CreatedDateUTC = date,
+            };
+            InitializeMessageContentInfo(ref messageRaw, tdMessage.Content);
+            InitializeSenderInfo(ref messageRaw, tdMessage.SenderId);
+            return messageRaw;
+        }
+
+        public static TgMessage ConvertToTgMessage(UpdateNewMessage msgNew) {
 
             TgMessage tgMessage = new() {
-                TgChatId = message.Message.ChatId,
-                TgMessageId = message.Message.Id,
+                TgChatId = msgNew.Message.ChatId,
+                TgMessageId = msgNew.Message.Id,
                 UpdateType = SoanxTdUpdateType.UpdateNewMessage,
-                CreatedDate = DateTimeHelper.FromUnixTime(message.Message.Date),
+                CreatedDateUTC = DateTimeHelper.FromUnixTime(msgNew.Message.Date),
             };
-            InitializeMessageContentInfo(ref tgMessage, message.Message.Content);
-            InitializeSenderInfo(ref tgMessage, message.Message.SenderId);
+            InitializeMessageContentInfo(ref tgMessage, msgNew.Message.Content);
+            InitializeSenderInfo(ref tgMessage, msgNew.Message.SenderId);
 
             return tgMessage;
+        }
+
+        public static TgMessage ConvertToTgMessage(UpdateMessageContent msgContent) {
+
+            TgMessage tgMessage = new() {
+                TgChatId = msgContent.ChatId,
+                TgMessageId = msgContent.MessageId,
+                UpdateType = SoanxTdUpdateType.UpdateMessageEdited,
+                CreatedDateUTC = DateTime.UtcNow,
+            };
+            InitializeMessageContentInfo(ref tgMessage, msgContent.NewContent);
+
+            return tgMessage;
+        }
+
+        public static List<TgMessage> ConvertToTgMessageCollection(UpdateDeleteMessages msgDeleted) {
+            var tgMessagesForDelete = new List<TgMessage>();
+            foreach (long messageId in msgDeleted.MessageIds) {
+                tgMessagesForDelete.Add(new() {
+                    TgChatId = msgDeleted.ChatId,
+                    TgMessageId = messageId,
+                    UpdateType = SoanxTdUpdateType.UpdateDeleteMessages,
+                    CreatedDateUTC = DateTime.UtcNow,
+                });
+            }
+            return tgMessagesForDelete;
         }
 
         private static void InitializeMessageContentInfo(ref TgMessage tgMessage, MessageContent messageContent) {

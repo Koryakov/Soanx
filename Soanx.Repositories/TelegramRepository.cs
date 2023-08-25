@@ -11,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace Soanx.Repositories
 {
+    [Obsolete("This is deprecated repository for unsupported entities TgMessage2 and TgMessageRaw")]
     public class TelegramRepository : SoanxDbRepositoryBase {
-        private Serilog.ILogger log;
+        private Serilog.ILogger log = Log.ForContext<TgRepository>();
 
         public TelegramRepository(string connectionString) : base(connectionString) {
-            log = Log.ForContext<TelegramRepository>();
         }
 
         public async Task AddTgMessageAsync(TgMessage2 tgMessage) {
@@ -48,6 +48,7 @@ namespace Soanx.Repositories
             }
         }
 
+
         //public async Task<List<TgMessage>> GetNotExtractedTgMessagesBatch(long chatId, DateTime sinceDate, int count) {
         //    using (var db = CreateContext()) {
         //        //TODO: order must be changed to telegram message Date field - see RawData column. Date should be moved to separate table column.
@@ -64,7 +65,7 @@ namespace Soanx.Repositories
             }
         }
 
-        public async Task<bool> SaveTgMessageRawList(List<TgMessageRaw> tgMessageRawList) {
+        public async Task SaveTgMessageRawList(List<TgMessageRaw> tgMessageRawList) {
             var locLog = log.ForContext("method", "SaveTgMessageRawList()");
             locLog.Information("IN, list count = {Count}", tgMessageRawList.Count);
 
@@ -100,29 +101,13 @@ namespace Soanx.Repositories
                         } else {
                             locLog.Information("No messages to save");
                         }
-                        return true;
                     }
                     catch (Exception ex) {
                         transaction.Rollback();
                         locLog.Error(ex, "Transaction has been rollbacked");
-                        return false;
+                        throw;
                     }
                 }
-            }
-        }
-
-        public async Task AddTgMessage(TgMessage newTgMessage) {
-            var locLog = log.ForContext("method", "AddTgMessage()");
-            locLog.Verbose("IN");
-
-            try {
-                using (var db = CreateContext()) {
-                    await db.TgMessage.AddAsync(newTgMessage);
-                    await db.SaveChangesAsync();
-                }
-            }
-            catch (Exception ex) {
-                locLog.Error(ex, "Error");
             }
         }
     }

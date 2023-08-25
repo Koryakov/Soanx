@@ -10,7 +10,6 @@ using Telegram.Bot.Types;
 
 namespace Soanx.TelegramAnalyzer {
     public class TelegramBotHelper {
-        private string token;
         private readonly TelegramBotClient botClient;
         private ManualResetEventSlim ReadyToFinish;
         private string returnedText;

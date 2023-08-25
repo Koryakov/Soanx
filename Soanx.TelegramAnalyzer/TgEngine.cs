@@ -77,7 +77,7 @@ public class TgEngine {
             Limit = 100
         });
 
-        int minUnixDate = DateTimeHelper.ToUnixTime(DateTime.Now);
+        int minUnixDate = DateTimeHelper.ToUnixTime(DateTime.UtcNow);
         var unixFromDate = DateTimeHelper.ToUnixTime(dtFrom);
         List<Message> tdMessages = new();
         do {

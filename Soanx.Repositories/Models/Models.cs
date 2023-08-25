@@ -15,13 +15,18 @@ namespace Soanx.Repositories.Models;
 public class TgMessage {
 
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public long Id { get; set; }
+    [Required]
     public long TgChatId { get; set; }
+    [Required]
     public long TgMessageId { get; set; }
-    public long SenderId { get; set; }
+    public long? SenderId { get; set; }
     public string Text { get; set; }
     public SenderType SenderType { get; set; }
-    public DateTime CreatedDate { get; set; }
+    [Required]
+    public DateTime CreatedDateUTC { get; set; }
+    [Required]
     public SoanxTdUpdateType UpdateType { get; set; }
     public MessageContentType ContentType { get; set; }
 }
@@ -99,5 +104,19 @@ public class TgMessageRawComparer : IEqualityComparer<TgMessageRaw> {
 
     public int GetHashCode(TgMessageRaw obj) {
         return HashCode.Combine(obj.TgChatId, obj.TgChatMessageId);
+    }
+}
+
+public class TgMessageComparer : IEqualityComparer<TgMessage> {
+    private Serilog.ILogger log = Log.ForContext<TgMessageComparer>();
+
+    public bool Equals(TgMessage x, TgMessage y) {
+        bool result = x.TgChatId == y.TgChatId && x.TgMessageId == y.TgMessageId;
+        //log.Verbose("Equals={@result}. x.ChatId = {@xChatId}, x.MsgId = {@xMsgId}, y.ChatId = {@yChatId}, y.MsgId = {@yMsgId}", result, x.TgChatId, x.TgChatMessageId, y.TgChatId, y.TgChatMessageId);
+        return result;
+    }
+
+    public int GetHashCode(TgMessage obj) {
+        return HashCode.Combine(obj.TgChatId, obj.TgMessageId);
     }
 }
