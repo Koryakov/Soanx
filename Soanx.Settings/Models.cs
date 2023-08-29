@@ -38,23 +38,8 @@ public class TgMessageSavingSettings {
     public int RunsInterval { get; set; }
 }
 
-public class TgCurrencyAnalyzingSettings {
-    public List<TgCurrencyAnalyzingChat> TgCurrencyAnalyzingChats { get; set; }
-}
-
-public class TgCurrencyAnalyzingChat {
+public class CurrencyExtractionChat {
     public string Comment { get; set; }
     public long ChatId { get; set; }
     public DateTime ReadTillDate { get; set; }
 }
-
-public class OpenAiSettings {
-    public required string OpenAiApiKey { get; set; }
-}
-
-public class CacheSettings {
-    public int DefaultExpirationMinutes { get; set; }
-}
-
-
-

@@ -4,7 +4,7 @@ using Moq;
 using OpenAI;
 using OpenAI.Managers;
 using OpenAI.ObjectModels.RequestModels;
-using Soanx.OpenAICurrencyExchange;
+using Soanx.CurrencyExchange;
 using Soanx.TelegramAnalyzer;
 using Soanx.TelegramAnalyzer.Models;
 using System;
@@ -48,7 +48,7 @@ public class FactsTests {
 
     [Fact]
     public async Task ExtractFactsWIthExamplesTest() {
-        var openAiParameters = config.GetRequiredSection("OpenAiParameters").Get<OpenAiParameters>();
+        var openAiParameters = config.GetRequiredSection("OpenAiSettings").Get<OpenAiSettings>();
         HttpClient httpClient = new HttpClient() { Timeout = new TimeSpan(0, 5, 0) };
 
         OpenAIService openAiService = new OpenAIService(
@@ -91,7 +91,7 @@ public class FactsTests {
 
     [Fact]
     public async Task ValidateOpenAiTest() {
-        var openAiParameters = config.GetRequiredSection("OpenAiParameters").Get<OpenAiParameters>();
+        var openAiParameters = config.GetRequiredSection("OpenAiSettings").Get<OpenAiSettings>();
         OpenAIService openAiService = new OpenAIService(new OpenAiOptions() {
             ApiKey = openAiParameters.OpenAiApiKey
         });

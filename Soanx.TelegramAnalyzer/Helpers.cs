@@ -9,7 +9,7 @@ using static TdLib.TdApi;
 using Soanx.TelegramModels;
 using Soanx.Repository;
 using Soanx.Repositories.Models;
-using Soanx.OpenAICurrencyExchange.Models;
+using Soanx.CurrencyExchange.EfModels;
 using TdLib;
 using static TdLib.TdApi.Update;
 using static System.Runtime.InteropServices.JavaScript.JSType;

@@ -15,7 +15,7 @@ using System.Text.Json;
 using Soanx.Repositories;
 using Microsoft.Extensions.Configuration;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using Soanx.OpenAICurrencyExchange;
+using Soanx.CurrencyExchange;
 using Soanx.TelegramModels;
 using Soanx.Repositories.Models;
 
@@ -106,8 +106,8 @@ public class TgEngine {
 
     public async Task FormilizeMessages(List<TgMessage2> tgMessages) {
         if(openAiApiClient == null) {
-            var openAiParameters = appSettings.Config.GetRequiredSection("OpenAiParameters").Get<OpenAiParameters>();
-            openAiApiClient = new ApiClient(openAiParameters, null);
+            var openAiParameters = appSettings.Config.GetRequiredSection("OpenAiSettings").Get<OpenAiSettings>();
+            openAiApiClient = new ApiClient(appSettings.OpenAiSettings.OpenAiApiKey, null);
         }
         //await openAiApiClient.FormalizeExchangeMessages();
     }

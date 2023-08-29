@@ -17,9 +17,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WorkerPlugins", "WorkerPlug
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.CurrencyExchange", "Plugins\Soanx.CurrencyExchange\Soanx.CurrencyExchange.csproj", "{0953E4E1-8242-4028-8512-DBB2C4233592}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.OpenAICurrencyExchange", "Soanx.OpenAICurrencyExchange\Soanx.OpenAICurrencyExchange.csproj", "{C9C01859-7E9F-4AC0-A244-3FFD93F75188}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.CurrencyExchange", "Soanx.OpenAICurrencyExchange\Soanx.CurrencyExchange.csproj", "{C9C01859-7E9F-4AC0-A244-3FFD93F75188}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Soanx.TelegramModels", "Soanx.TelegramModels\Soanx.TelegramModels.csproj", "{689AC1C4-4200-4F0A-9BEF-BC565343EC65}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Soanx.CurrencyExchange.Models", "Soanx.CurrencyExchange.Models\Soanx.CurrencyExchange.Models.csproj", "{06F3C9A6-FCF4-4C7C-8ED7-08BDF8A5F554}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,6 +61,10 @@ Global
 		{689AC1C4-4200-4F0A-9BEF-BC565343EC65}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{689AC1C4-4200-4F0A-9BEF-BC565343EC65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{689AC1C4-4200-4F0A-9BEF-BC565343EC65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06F3C9A6-FCF4-4C7C-8ED7-08BDF8A5F554}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06F3C9A6-FCF4-4C7C-8ED7-08BDF8A5F554}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06F3C9A6-FCF4-4C7C-8ED7-08BDF8A5F554}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06F3C9A6-FCF4-4C7C-8ED7-08BDF8A5F554}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -47,13 +47,17 @@ public class SoanxConsole {
         ITdClientAuthorizer tdClientAuthorizer = new TdClientAuthorizer(tdClient, appSettings.TdLibParameters, appSettings.BotSettings);
         await tdClientAuthorizer.Run();
 
-        ITelegramWorker tgReader = new TgMessageGrabbingWorker(tdClient, collectionForStoring, appSettings.TgGrabbingSettings, appSettings.TgGrabbingChats);
-        ITelegramWorker tgEventsWorker = new TgMessageEventsWorker(tdClient, appSettings.TgListeningChats, appSettings.SoanxConnectionString);
+        ITelegramWorker tgGrabbingWorker = new TgMessageGrabbingWorker(tdClient, collectionForStoring, appSettings.TgGrabbingSettings, appSettings.TgGrabbingChats);
         ITelegramWorker tgSavingWorker = new TgMessageSavingWorker(appSettings.TgMessageSavingSettings, collectionForStoring, appSettings.SoanxConnectionString);
-        
-        //tasks.Add(Task.Run(() => tgReader.Run(cancellationTokenSource.Token)));
+        ITelegramWorker tgEventsWorker = new TgMessageEventsWorker(tdClient, appSettings.TgListeningChats, appSettings.SoanxConnectionString);
+        ITelegramWorker tgAnalyzingWorker = new CurrencyAnalyzingWorker(appSettings.OpenAiSettings, appSettings.TgCurrencyAnalyzingSettings, appSettings.SoanxConnectionString);
+
+        //TODO: TgMessageGrabbingWorker and TgMessageSavingWorker must work together. Probably saving worker should run inside grabbing worker.
+        //tasks.Add(Task.Run(() => tgGrabbingWorker.Run(cancellationTokenSource.Token)));
+        //tasks.Add(Task.Run(() => tgSavingWorker.Run(cancellationTokenSource.Token)));
+
         tasks.Add(Task.Run(() => tgEventsWorker.Run(cancellationTokenSource.Token)));
-        //tasks.Add(Task.Run(() => savingWorker.Run(cancellationTokenSource.Token)));
+        tasks.Add(Task.Run(() => tgAnalyzingWorker.Run(cancellationTokenSource.Token)));
 
         _ = Task.Run(() => {
             Console.WriteLine("Press any key to exit");

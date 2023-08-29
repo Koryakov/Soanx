@@ -1,7 +1,6 @@
 ﻿
 using Microsoft.Extensions.Configuration;
 using Soanx.TelegramAnalyzer.Models;
-using Soanx.TelegramModels;
 
 namespace Soanx.TelegramAnalyzer;
 public class AppSettingsHelper {
@@ -14,9 +13,6 @@ public class AppSettingsHelper {
     public TgMessageGrabbingSettings TgGrabbingSettings { get; private set; }
     public List<TgGrabbingChat> TgGrabbingChats { get; set; }
     public List<TgListeningChat> TgListeningChats { get; set; }
-    public TgCurrencyAnalyzingSettings TgCurrencyAnalyzingSettings { get; set; }
-    public OpenAiSettings OpenAiSettings { get; set; }
-    public CacheSettings CacheSettings { get; set; }
 
     public AppSettingsHelper() {
         Config = new ConfigurationBuilder()
@@ -32,8 +28,5 @@ public class AppSettingsHelper {
         TgMessageSavingSettings = Config.GetRequiredSection("TgMessageSavingSettings").Get<TgMessageSavingSettings>();
         TgGrabbingChats = Config.GetRequiredSection("TgGrabbingChats").Get<List<TgGrabbingChat>>();
         TgListeningChats = Config.GetRequiredSection("TgListeningChats").Get<List<TgListeningChat>>();
-        TgCurrencyAnalyzingSettings = Config.GetRequiredSection("TgCurrencyAnalyzingSettings").Get<TgCurrencyAnalyzingSettings>();
-        OpenAiSettings = Config.GetRequiredSection("OpenAiSettings").Get<OpenAiSettings>();
-        CacheSettings = Config.GetRequiredSection("CacheSettings").Get<CacheSettings>();
     }
 }

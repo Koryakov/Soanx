@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Soanx.CurrencyExchange.Models\Soanx.CurrencyExchange.Models.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="OpenAICorpus\MontenegroExchange.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

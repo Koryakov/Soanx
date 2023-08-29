@@ -4,15 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Soanx.OpenAICurrencyExchange.Models;
+namespace Soanx.CurrencyExchange.OpenAiDtoModels;
 
 public class PromptingSet {
-    public Message Message { get; set; }
+    public MessageForAnalyzing Message { get; set; }
     public FormalizedMessage FormalizedMessage { get; set; }
 }
 
 public class FormalizedMessageEx : FormalizedMessage {
-    public Message Message { get; set; }
+    public MessageForAnalyzing Message { get; set; }
 }
 
 public class FormalizedMessage {
@@ -21,7 +21,7 @@ public class FormalizedMessage {
     public List<Offer> Offers { get; set; }
 }
 
-public class Message {
+public class MessageForAnalyzing {
     public long Id { get; set; }
     public string Text { get; set; }
 }

@@ -7,26 +7,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using OpenAI.ObjectModels.RequestModels;
-using Soanx.OpenAICurrencyExchange.Models;
+using Soanx.CurrencyExchange.EfModels;
 
-namespace Soanx.OpenAICurrencyExchange;
-
-public class OpenAiParameters {
-    public required string OpenAiApiKey { get; set; }
-}
+namespace Soanx.CurrencyExchange;
 
 public class ApiClient {
-    private OpenAiParameters OpenAiParameters;
     private OpenAIService openAiService;
     public string PromptCollectionName { get; private set; }
 
-    public ApiClient(OpenAiParameters openAiParameters, string promptCollectionName) {
-        this.OpenAiParameters = openAiParameters;
+    public ApiClient(string openAiApiKey, string promptCollectionName) {
         PromptCollectionName = promptCollectionName;
 
         openAiService = new OpenAIService(new OpenAiOptions() {
-            ApiKey = OpenAiParameters.OpenAiApiKey
+            ApiKey = openAiApiKey
         });
     }
 

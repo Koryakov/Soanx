@@ -31,7 +31,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Soanx.OpenAICurrencyExchange\Soanx.OpenAICurrencyExchange.csproj" />
+    <ProjectReference Include="..\Soanx.CurrencyExchange.Models\Soanx.CurrencyExchange.Models.csproj" />
+    <ProjectReference Include="..\Soanx.OpenAICurrencyExchange\Soanx.CurrencyExchange.csproj" />
     <ProjectReference Include="..\Soanx.Repositories\Soanx.Repositories.csproj" />
     <ProjectReference Include="..\Soanx.TgWorker\Soanx.TgWorker.csproj" />
   </ItemGroup>

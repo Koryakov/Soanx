@@ -31,7 +31,7 @@
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "enum": [ "USDT", "USDC", "BUSD", "EUR", "USD", "UAH", "RUB", "other" ]
+                    "enum": [ "unknown", "USDT", "USDC", "BUSD", "EUR", "USD", "UAH", "RUB" ]
                   }
                 },
                 "AmountMin": {
@@ -50,7 +50,7 @@
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "enum": [ "USDT", "USDC", "BUSD", "EUR", "USD", "UAH", "RUB", "other" ]
+                    "enum": [ "unknown", "USDT", "USDC", "BUSD", "EUR", "USD", "UAH", "RUB" ]
                   }
                 },
                 "RateMin": {
@@ -59,7 +59,7 @@
                 "RateMax": {
                   "type": "number"
                 },
-                "BanksTo": {
+                "Banks": {
                   "type": "array",
                   "items": {
                     "type": "string"
@@ -80,8 +80,8 @@
               }
             }
           },
-          "required": [ "Sell", "Buy" ]
-        }
+          "required": [ "Sell", "Buy", "SellToBuyRate" ]
+        }        
       },
       "NotMatched": {
         "type": "boolean"

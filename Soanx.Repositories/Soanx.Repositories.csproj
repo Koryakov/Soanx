@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Soanx.CurrencyExchange.Models\Soanx.CurrencyExchange.Models.csproj" />
     <ProjectReference Include="..\Soanx.TelegramModels\Soanx.TelegramModels.csproj" />
   </ItemGroup>
 

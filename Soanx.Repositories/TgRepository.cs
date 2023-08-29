@@ -1,9 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Soanx.CurrencyExchange.EfModels;
+using Soanx.CurrencyExchange.OpenAiDtoModels;
 using Soanx.Repositories.Models;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -83,6 +86,44 @@ namespace Soanx.Repositories
                         throw;
                     }
                 }
+            }
+        }
+
+        public async Task<List<MessageForAnalyzing>> GetTgMessagesByAnalyzedStatus(
+            TgMessage.TgMessageAnalyzedStatus currentStatus, TgMessage.TgMessageAnalyzedStatus newStatus, int count) {
+
+            var locLog = log.ForContext("method", "GetNotAnalyzedTgMessages");
+            locLog.Debug("IN, count:{@count}, analyzedStatus={@analyzedStatus}", count, currentStatus);
+
+            using (var db = CreateContext()) {
+                using (var transaction = db.Database.BeginTransaction(IsolationLevel.ReadCommitted)) {
+                    var modifiedDateUTC = DateTime.UtcNow;
+
+                    var tgMessages = await db.TgMessage
+                        .Where(m => m.AnalyzedStatus == currentStatus)
+                        .Take(count).ToListAsync();
+
+                    tgMessages.ForEach(ca => {
+                        ca.AnalyzedStatus = newStatus;
+                        ca.AnalyzedStatusModifiedDateUTC = modifiedDateUTC;
+                    });
+                    db.SaveChanges();
+                    transaction.Commit();
+
+                    locLog.Debug("{@cnt} messages retrieved", tgMessages.Count);
+                    return tgMessages.Select(m => new MessageForAnalyzing() { Id = m.Id, Text = m.Text }).ToList();
+                }
+            }
+        }
+
+        public async Task<List<City>> GetCities() {
+            var locLog = log.ForContext("method", "GetCities");
+            locLog.Debug("IN");
+            using (var db = CreateContext()) {
+                var cities = await db.City.Include(c => c.Country).ToListAsync();
+
+                locLog.Debug("{@cnt} cities retrieved", cities.Count);
+                return cities;
             }
         }
     }

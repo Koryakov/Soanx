@@ -29,6 +29,14 @@ public class TgMessage {
     [Required]
     public SoanxTdUpdateType UpdateType { get; set; }
     public MessageContentType ContentType { get; set; }
+    public DateTime? AnalyzedStatusModifiedDateUTC { get; set; }
+    public TgMessageAnalyzedStatus AnalyzedStatus { get; set; }
+
+    public enum TgMessageAnalyzedStatus {
+        Unknown = 0,
+        InProcess = 1,
+        Analyzed = 2
+    }
 }
 
 
@@ -119,4 +127,16 @@ public class TgMessageComparer : IEqualityComparer<TgMessage> {
     public int GetHashCode(TgMessage obj) {
         return HashCode.Combine(obj.TgChatId, obj.TgMessageId);
     }
+}
+
+public class ExchangeMessage {
+
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public long Id { get; set; }
+    [Required]
+    public long SoanxMessageId { get; set; }
+    [Required]
+    public DateTime CreatedDateUTC { get; set; }
+
 }

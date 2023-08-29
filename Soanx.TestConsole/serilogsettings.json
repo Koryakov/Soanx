@@ -8,7 +8,7 @@
       {
         "Name": "File",
         "Args": {
-          "path": "C:\\temp\\SoanxErrors.txt",
+          "path": "C:\\temp\\soanx\\SoanxErrors.txt",
           "restrictedToMinimumLevel": "Error",
           "rollingInterval": "Day",
           "outputTemplate": "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] Context={SourceContext} {Properties:j} {Message}{NewLine}{Exception}"
@@ -17,7 +17,7 @@
       {
         "Name": "File",
         "Args": {
-          "path": "C:\\temp\\SoanxInfo.txt",
+          "path": "C:\\temp\\soanx\\SoanxInfo.txt",
           "restrictedToMinimumLevel": "Verbose",
           "rollingInterval": "Day",
           "outputTemplate": "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] Context={SourceContext} {Properties:j} {Message}{NewLine}{Exception}"

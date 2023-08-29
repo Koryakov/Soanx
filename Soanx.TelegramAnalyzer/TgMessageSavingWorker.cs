@@ -35,14 +35,14 @@ namespace Soanx.TelegramAnalyzer {
             while (!cancellationToken.IsCancellationRequested) {
                 var messagesList = new List<TgMessage>(BatchSize);
 
-                for (int i = 0; i < BatchSize; i++) {
+                for (int i = 0; i < Math.Min(BatchSize, CollectionForStoring.Count); i++) {
                     if (CollectionForStoring.TryTake(out var item)) {
                         messagesList.Add(item);
                     }
                 }
+                locLog.Debug("msg in collectionForStoring = {@allCollection}, taken to save = {@takenCount}", CollectionForStoring.Count, messagesList.Count);
 
                 if (messagesList.Count > 0) {
-                    locLog.Information("msg in collectionForStoring = {allCollection}, taken to save = {takenCount}", CollectionForStoring.Count, messagesList.Count);
 
                     try {
                         await tgRepository.SaveTgMessageList(messagesList);
@@ -54,6 +54,7 @@ namespace Soanx.TelegramAnalyzer {
                         locLog.Error(ex, "messages have been returned to the collectionForStoring.");
                     }
                 }
+                //TODO: change Delay to ManualResetEvent
                 Task.Delay(RunsInterval).Wait();
             }
             locLog.Information("OUT. CancellationToken has been triggered");
