@@ -1,6 +1,7 @@
 ﻿using OpenAI;
 using OpenAI.Managers;
 using OpenAI.ObjectModels.RequestModels;
+using OpenAI.ObjectModels.ResponseModels;
 using OpenAI.ObjectModels.SharedModels;
 using Serilog;
 using Soanx.CurrencyExchange;
@@ -14,12 +15,15 @@ public class OpenAiApiClient {
     private string openAiApiKey;
     private string openAiModelName;
     private Serilog.ILogger log = Log.ForContext<OpenAiApiClient>();
+    private ChatPromptHelper chatPromptHelper;
 
-    public OpenAiApiClient(string openAiApiKey, string openAiModelName) {
+
+    public OpenAiApiClient(string openAiApiKey, ChatPromptHelper chatPromptHelper, string openAiModelName) {
         var locLog = log.ForContext("method", "constructor");
         locLog.Information("IN. openAiModelName: {@openAiModelName}", openAiModelName);
 
         this.openAiApiKey = openAiApiKey;
+        this.chatPromptHelper = chatPromptHelper;
         this.openAiModelName = openAiModelName;
         InitializeOpenService(openAiApiKey);
     }
@@ -36,69 +40,65 @@ public class OpenAiApiClient {
         return openAiService;
     }
 
-    public async Task<bool> SendPromptRequestAndValidateResult() {
-        var locLog = log.ForContext("method", "SendPromptRequestAndValidateResult");
-        locLog.Information("IN");
+    //public async Task<bool> SendPromptRequestAndValidateResult() {
+    //    var locLog = log.ForContext("method", "SendPromptRequestAndValidateResult");
+    //    locLog.Information("IN");
 
-        var mneExchangePromptHelper = await ChatPromptHelper.CreateNew("MontenegroExchange");
+    //    var mneExchangePromptHelper = await ChatPromptHelper.CreateNew("MontenegroExchange");
 
-        var openAiRequest = new ChatCompletionCreateRequest();
-        openAiRequest.Messages = new List<ChatMessage>
-            {
-                ChatMessage.FromSystem(mneExchangePromptHelper.Instruction),
-                ChatMessage.FromSystem(mneExchangePromptHelper.ResultSchemaJson),
-                ChatMessage.FromUser(mneExchangePromptHelper.MessagesJson),
-                ChatMessage.FromAssistant(mneExchangePromptHelper.FormalizedMessagesJson),
-            };
-        openAiRequest.Model = openAiModelName;
+    //    var openAiRequest = new ChatCompletionCreateRequest();
+    //    openAiRequest.Messages = new List<ChatMessage>
+    //        {
+    //            ChatMessage.FromSystem(mneExchangePromptHelper.Instruction),
+    //            ChatMessage.FromSystem(mneExchangePromptHelper.ResultSchemaJson),
+    //            ChatMessage.FromUser(mneExchangePromptHelper.MessagesJson),
+    //            ChatMessage.FromAssistant(mneExchangePromptHelper.FormalizedMessagesJson),
+    //            ChatMessage.FromUser(),
+    //        };
+    //    openAiRequest.Model = openAiModelName;
 
-        ChatChoiceResult result = await SendOpenAiRequest(openAiRequest);
+    //    ChatChoiceResult result = await SendOpenAiRequest(openAiRequest);
 
-        locLog.Information("OUT. SendOpenAiRequest result.IsSuccess = {@IsSuccess}, result.Choices: {@choices}", 
-            result.IsSuccess, result.Choices);
+    //    locLog.Information("OUT. SendOpenAiRequest result.IsSuccess = {@IsSuccess}, result.Choices: {@choices}", 
+    //        result.IsSuccess, result.Choices);
 
-        return result.IsSuccess;
-    }
+    //    return result.IsSuccess;
+    //}
 
     public async Task<ChatChoiceResult> SendOpenAiRequest(List<MessageForAnalyzing> messages) {
         var locLog = log.ForContext("method", "SendOpenAiRequest(List<MessageForAnalyzing> messages)");
-        locLog.Information("IN. MessageForAnalyzing count = {@msgListCount}", messages.Count);
+        locLog.Debug("IN. MessageForAnalyzing count = {@msgListCount}", messages.Count);
 
         var openAiRequest = new ChatCompletionCreateRequest() { Model = openAiModelName };
-        openAiRequest.Messages = new List<ChatMessage>();
+        openAiRequest.Messages = chatPromptHelper.PromptingSetList;
         var jsonMessages = SerializationHelper.Serialize<List<MessageForAnalyzing>>(messages);
         openAiRequest.Messages.Add(ChatMessage.FromUser(jsonMessages));
 
         var result = await SendOpenAiRequest(openAiRequest);
-        locLog.Verbose<ChatChoiceResult>("{@ChatChoiceResult}", result);
+        locLog.Debug("OUT.");
         return result;
     }
 
-    public async Task<ChatChoiceResult> SendOpenAiRequest(ChatCompletionCreateRequest request) {
+    private async Task<ChatChoiceResult> SendOpenAiRequest(ChatCompletionCreateRequest completionRequest) {
         var locLog = log.ForContext("method", "SendOpenAiRequest(ChatCompletionCreateRequest request)");
-        locLog.Information("IN. request.Messages.Count = {@msgListCount}", request.Messages.Count);
+        locLog.Debug("IN. request.Messages.Count = {@msgListCount}", completionRequest.Messages.Count);
+        locLog.Verbose<ChatCompletionCreateRequest>("completionRequest: {@completionRequest}", completionRequest);
         
         bool isSuccess = false;
-        List<ChatChoiceResponse>? answers = new ();
+        List<ChatChoiceResponse>? answers = new();
 
-        try {
-            var completionResult = await openAiService.ChatCompletion.CreateCompletion(request);
-            if (completionResult.Successful) {
-                foreach (var choice in completionResult.Choices) {
-                    answers.Add(choice);
-                }
-                isSuccess = request.Messages.Count > 0 && completionResult.Choices.Count > 0;
+        var completionResult = await openAiService.ChatCompletion.CreateCompletion(completionRequest);
+        if (completionResult.Successful) {
+            foreach (var choice in completionResult.Choices) {
+                answers.Add(choice);
             }
-            else {
-                if (completionResult.Error == null) {
-                    throw new Exception("Unknown Error");
-                }
-            }
+            isSuccess = completionRequest.Messages.Count > 0 && completionResult.Choices.Count > 0;
         }
-        catch (Exception ex) {
-            locLog.Error(ex, "messages have been returned to the collectionForAnalyzing.");
+        else {
+            locLog.Error<ChatCompletionCreateResponse>("Error. completionResult: {@completionResult}", completionResult);
         }
-        locLog.Information("OUT. Responded choices count = {@chCount}", answers.Count);
+        locLog.Verbose<ChatCompletionCreateResponse>("completionResult: {@completionResult}", completionResult);
+        locLog.Debug("OUT. Responded choices count = {@chCount}", answers.Count);
         return new ChatChoiceResult() { IsSuccess = isSuccess, Choices = answers };
     }
 }

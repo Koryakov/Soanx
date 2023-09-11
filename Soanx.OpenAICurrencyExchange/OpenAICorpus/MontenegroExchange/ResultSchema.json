@@ -34,6 +34,12 @@
                     "enum": [ "unknown", "USDT", "USDC", "BUSD", "EUR", "USD", "UAH", "RUB" ]
                   }
                 },
+                "Banks": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
                 "AmountMin": {
                   "type": "number"
                 },
@@ -53,17 +59,17 @@
                     "enum": [ "unknown", "USDT", "USDC", "BUSD", "EUR", "USD", "UAH", "RUB" ]
                   }
                 },
-                "RateMin": {
-                  "type": "number"
-                },
-                "RateMax": {
-                  "type": "number"
-                },
                 "Banks": {
                   "type": "array",
                   "items": {
                     "type": "string"
                   }
+                },
+                "RateMin": {
+                  "type": "number"
+                },
+                "RateMax": {
+                  "type": "number"
                 }
               },
               "required": [ "Currencies" ]

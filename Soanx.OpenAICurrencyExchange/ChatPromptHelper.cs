@@ -1,27 +1,31 @@
-﻿using Soanx.CurrencyExchange.OpenAiDtoModels;
+﻿using OpenAI.ObjectModels.RequestModels;
+using Serilog;
+using Soanx.CurrencyExchange.OpenAiDtoModels;
 
 namespace Soanx.CurrencyExchange;
 public class ChatPromptHelper {
+    private Serilog.ILogger log = Log.ForContext<ChatPromptHelper>();
     public string CorpusName { get; private set; }
     public string Instruction {  get; private set; }
     public string ResultSchemaJson {  get; private set; }
     public string MessagesJson {  get; private set; }
     public string FormalizedMessagesJson {  get; private set; }
-    public List<PromptingSet> PromptingSetList { get { return promptingSetList; } }
+    public List<ChatMessage> PromptingSetList { get; private set; }
 
     private List<FormalizedMessageEx> messagesExList;
     private List<FormalizedMessage> messagesList;
-    private List<PromptingSet> promptingSetList;
 
     public static async Task<ChatPromptHelper> CreateNew(string corpusName) {
         var helper = new ChatPromptHelper();
-        await helper.InitializePromptCollections(corpusName);
+        await helper.Initialize(corpusName);
         return helper;
     }
 
-    public async Task InitializePromptCollections(string corpusName) {
-        CorpusName = corpusName;
+    private async Task Initialize(string corpusName) {
+        var locLog = log.ForContext("method", "Initialize");
+        locLog.Information("IN. corpusName = {@corpusName}", corpusName);
 
+        CorpusName = corpusName;
         string relatedPath = Path.Combine("OpenAICorpus", corpusName);
         Instruction = await File.ReadAllTextAsync(Path.Combine(relatedPath, "Instruction.txt"));
 
@@ -37,6 +41,22 @@ public class ChatPromptHelper {
         MessagesJson = SerializationHelper.Serialize<IEnumerable<MessageForAnalyzing>>(
             messagesExList.Select(ex => ex.Message));
 
-        FormalizedMessagesJson = SerializationHelper.Serialize<List<FormalizedMessage>>(messagesList);
+        FormalizedMessagesJson = SerializationHelper.Serialize(messagesList);
+
+        InitializePromptsCollection();
+        locLog.Information("Instruction: {@Instruction}", Instruction);
+        locLog.Information("ResultSchemaJson: {@ResultSchemaJson}", ResultSchemaJson);
+        locLog.Information("MessagesJson: {@MessagesJson}", MessagesJson);
+        locLog.Information("FormalizedMessagesJson: {@FormalizedMessagesJson}", FormalizedMessagesJson);
+        locLog.Information("OUT.");
+    }
+
+    private void InitializePromptsCollection() {
+        PromptingSetList = new List<ChatMessage>() {
+        ChatMessage.FromSystem(Instruction),
+        ChatMessage.FromSystem(ResultSchemaJson),
+        ChatMessage.FromUser(MessagesJson),
+        ChatMessage.FromAssistant(FormalizedMessagesJson),
+        };
     }
 }

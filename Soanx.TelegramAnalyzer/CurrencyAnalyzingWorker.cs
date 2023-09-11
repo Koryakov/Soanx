@@ -1,5 +1,6 @@
 ﻿using OpenAI.ObjectModels.SharedModels;
 using Serilog;
+using Soanx.CurrencyExchange;
 using Soanx.CurrencyExchange.OpenAiDtoModels;
 using Soanx.Repositories;
 using Soanx.Repositories.Models;
@@ -51,16 +52,21 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
         locLog.Information("IN");
 
         while (!cancellationToken.IsCancellationRequested) {
-            var batchForAnalyzing = await tgRepository
-                .GetTgMessagesByAnalyzedStatus(
-                    TgMessage.TgMessageAnalyzedStatus.Unknown, TgMessage.TgMessageAnalyzedStatus.InProcess, ReadingBatchSize);
-
-            foreach (MessageForAnalyzing msg in batchForAnalyzing) {
-                messagesForAnalyzing.Add(msg);
+            try {
+                var batchForAnalyzing = await tgRepository
+                    .GetTgMessagesByAnalyzedStatus(
+                        TgMessage.TgMessageAnalyzedStatus.Unknown, TgMessage.TgMessageAnalyzedStatus.InProcess, ReadingBatchSize);
+                foreach (MessageForAnalyzing msg in batchForAnalyzing) {
+                    messagesForAnalyzing.Add(msg);
+                }
+                if (batchForAnalyzing.Count > 0) {
+                    locLog.Information("{@analyzingCount} messages read from db and added into messagesForAnalyzing collection.", messagesForAnalyzing.Count);
+                }
+                Task.Delay(ReadIntervalSec * 1000).Wait();
+            } catch (Exception ex) {
+                locLog.Error(ex, "Method processing will continue after pause.");
+                Task.Delay(5000);
             }
-            locLog.Information("{@analyzingCount} messages read from db and added into messagesForAnalyzing collection.", messagesForAnalyzing.Count);
-            Task.Delay(ReadIntervalSec*1000).Wait();
-
         }
         locLog.Information("OUT");
     }
@@ -68,29 +74,38 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
         var locLog = log.ForContext("method", "Analyze()");
         locLog.Information("IN");
 
-        var openAiApiClient = new OpenAiApiClient(OpenAiSettings.OpenAiApiKey, OpenAI.ObjectModels.Models.ChatGpt3_5Turbo);
+        try {
+            var mneExchangePromptHelper = await ChatPromptHelper.CreateNew("MontenegroExchange");
 
-        if (await openAiApiClient.SendPromptRequestAndValidateResult()) {
+            var openAiApiClient = new OpenAiApiClient(
+                OpenAiSettings.OpenAiApiKey, mneExchangePromptHelper, OpenAI.ObjectModels.Models.ChatGpt3_5Turbo);
+
             while (!cancellationToken.IsCancellationRequested) {
-                List<MessageForAnalyzing> messagesList = TakeMessagesBatch();
+                try {
+                    List<MessageForAnalyzing> messagesList = TakeMessagesBatch();
 
-                if (messagesList.Count > 0) {
-                    locLog.Information("msg in collectionForAnalyzing = {@allCollection}, taken to save = {@takenCount}", messagesForAnalyzing.Count, messagesList.Count);
-                    var result = await openAiApiClient.SendOpenAiRequest(messagesList);
-                    if(result.IsSuccess) {
-                        foreach (var choice in result.Choices) {
-                            analyzedForStoring.Add(choice);
+                    if (messagesList.Count > 0) {
+                        locLog.Information("msg in collectionForAnalyzing = {@allCollection}, taken to save = {@takenCount}", messagesForAnalyzing.Count, messagesList.Count);
+                        var result = await openAiApiClient.SendOpenAiRequest(messagesList);
+                        if (result.IsSuccess) {
+                            foreach (var choice in result.Choices) {
+                                analyzedForStoring.Add(choice);
+                            }
+                        }
+                        else {
+                            //TODO: Negative scenario should be implemented here
                         }
                     }
-                    else {
-                        //TODO: Negative scenario should be implemented here
-                    }
+                    Task.Delay(AnalyzeIntervalSec * 1000).Wait();
+                } catch (Exception ex) {
+                    locLog.Error(ex, "Method processing will continue after pause.");
+                    Task.Delay(5000);
                 }
-                Task.Delay(AnalyzeIntervalSec*1000).Wait();
             }
-        } else {
-            //TODO: Negative scenario should be implemented here
+        } catch (Exception ex) {
+            locLog.Error(ex, "Method will be finished.");
         }
+
         locLog.Information("OUT");
     }
 
@@ -104,7 +119,7 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
                 messagesList.Add(item);
             }
         }
-        locLog.Debug("{@takenCount} messages was taken.", messagesList.Count);
+        locLog.Verbose("{@takenCount} messages was taken.", messagesList.Count);
 
         return messagesList;
     }

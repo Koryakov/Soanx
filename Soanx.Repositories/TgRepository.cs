@@ -92,27 +92,37 @@ namespace Soanx.Repositories
         public async Task<List<MessageForAnalyzing>> GetTgMessagesByAnalyzedStatus(
             TgMessage.TgMessageAnalyzedStatus currentStatus, TgMessage.TgMessageAnalyzedStatus newStatus, int count) {
 
-            var locLog = log.ForContext("method", "GetNotAnalyzedTgMessages");
-            locLog.Debug("IN, count:{@count}, analyzedStatus={@analyzedStatus}", count, currentStatus);
+            var locLog = log.ForContext("method", "GetTgMessagesByAnalyzedStatus");
+            locLog.Verbose("IN, count:{@count}, analyzedStatus={@analyzedStatus}", count, currentStatus);
 
             using (var db = CreateContext()) {
                 using (var transaction = db.Database.BeginTransaction(IsolationLevel.ReadCommitted)) {
-                    var modifiedDateUTC = DateTime.UtcNow;
+                    try {
+                        var modifiedDateUTC = DateTime.UtcNow;
 
-                    var tgMessages = await db.TgMessage
-                        .Where(m => m.AnalyzedStatus == currentStatus)
-                        .Take(count).ToListAsync();
+                        var tgMessages = await db.TgMessage
+                            .Where(m => m.AnalyzedStatus == currentStatus)
+                            .Take(count).ToListAsync();
 
-                    tgMessages.ForEach(ca => {
-                        ca.AnalyzedStatus = newStatus;
-                        ca.AnalyzedStatusModifiedDateUTC = modifiedDateUTC;
-                    });
-                    db.SaveChanges();
-                    transaction.Commit();
-
-                    locLog.Debug("{@cnt} messages retrieved", tgMessages.Count);
-                    return tgMessages.Select(m => new MessageForAnalyzing() { Id = m.Id, Text = m.Text }).ToList();
+                        tgMessages.ForEach(ca => {
+                            ca.AnalyzedStatus = newStatus;
+                            ca.AnalyzedStatusModifiedDateUTC = modifiedDateUTC;
+                        });
+                        db.SaveChanges();
+                        transaction.Commit();
+                        
+                        if (tgMessages.Count > 0) {
+                            locLog.Debug("{@cnt} messages retrieved", tgMessages.Count);
+                        }
+                        return tgMessages.Select(m => new MessageForAnalyzing() { Id = m.Id, Text = m.Text }).ToList();
+                    }
+                    catch (Exception ex) {
+                        transaction.Rollback();
+                        locLog.Error(ex, "Transaction has been rollbacked");
+                        throw;
+                    }
                 }
+                locLog.Verbose("OUT");
             }
         }
 

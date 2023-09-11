@@ -32,8 +32,6 @@ public class TgEngine {
     private bool authNeeded;
     private bool passwordNeeded;
 
-    private ApiClient openAiApiClient;
-
     private bool ignoreMessagesEvents;
     protected virtual TelegramRepository tgRepository { get; set; }
 
@@ -102,14 +100,6 @@ public class TgEngine {
 
     public async Task<int> SaveTgMessages(List<TgMessage2> tgMessages) {
         return await tgRepository.AddTgMessageAsync(tgMessages);
-    }
-
-    public async Task FormilizeMessages(List<TgMessage2> tgMessages) {
-        if(openAiApiClient == null) {
-            var openAiParameters = appSettings.Config.GetRequiredSection("OpenAiSettings").Get<OpenAiSettings>();
-            openAiApiClient = new ApiClient(appSettings.OpenAiSettings.OpenAiApiKey, null);
-        }
-        //await openAiApiClient.FormalizeExchangeMessages();
     }
 
     public async Task<List<TgMessage2>> LoadTgMessagesFromDbAsync(long chatId, DateTime sinceDate) {

@@ -58,8 +58,7 @@ public class FactsTests {
             httpClient
         );
         
-        var promptHelper = new ChatPromptHelper();
-        await promptHelper.InitializePromptCollections("MontenegroExchange");
+        var promptHelper = await ChatPromptHelper.CreateNew("MontenegroExchange");
 
         var request = new ChatCompletionCreateRequest {
             Messages = new List<ChatMessage>

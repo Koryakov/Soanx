@@ -2,7 +2,7 @@
   "Serilog": {
     "Using": [ "Serilog.Sinks.File", "Serilog.Enrichers.Context" ],
     "MinimumLevel": {
-      "Default": "Verbose"
+      "Default": "Debug"
     },
     "WriteTo": [
       {
