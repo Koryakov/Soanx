@@ -23,9 +23,6 @@
     <None Update="OpenAICorpus\MontenegroExchange\Examples.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="OpenAICorpus\MontenegroExchange\ExamplesOld.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="OpenAICorpus\MontenegroExchange\Instruction.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

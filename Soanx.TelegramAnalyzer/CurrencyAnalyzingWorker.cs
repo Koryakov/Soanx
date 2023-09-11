@@ -6,6 +6,7 @@ using Soanx.Repositories;
 using Soanx.Repositories.Models;
 using Soanx.TelegramAnalyzer.Models;
 using System.Collections.Concurrent;
+using Telegram.Bot.Types;
 
 namespace Soanx.TelegramAnalyzer;
 public class CurrencyAnalyzingWorker : ITelegramWorker {
@@ -19,7 +20,7 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
     private CancellationToken cancellationToken;
     //private ManualResetEvent newTgMessagesEvent = new(false);
     private ConcurrentBag<MessageForAnalyzing> messagesForAnalyzing = new();
-    private ConcurrentBag<ChatChoiceResponse> analyzedForStoring = new();
+    private ConcurrentBag<FormalizedMessage> formalizedMessages = new();
     private TgRepository tgRepository;
     private List<Task> tasks = new List<Task>();
 
@@ -101,8 +102,9 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
                             locLog.Information("msg in collectionForAnalyzing = {@allCollection}, taken to save = {@takenCount}", messagesForAnalyzing.Count, messagesList.Count);
                             var result = await openAiApiClient.SendOpenAiRequest(messagesList);
                             if (result.IsSuccess) {
-                                foreach (var choice in result.Choices) {
-                                    analyzedForStoring.Add(choice);
+                                List<FormalizedMessage> convertedList = OpenAiChoicesConvertor.ConvertToFormalized(result.Choices);
+                                foreach (var formalizedMessage in convertedList) {
+                                    formalizedMessages.Add(formalizedMessage);
                                 }
                             }
                             else {
@@ -137,33 +139,31 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
             return messagesList;
         }
     }
+
     private async Task Save() {
         var locLog = log.ForContext("method", "Save()");
         locLog.Information("IN");
 
         int batchSize = SaveFormalizedSettings.BatchSize;
         while (!cancellationToken.IsCancellationRequested) {
-            var analyzedBatchList = new List<ChatChoiceResponse>(batchSize);
+            var batchToSave = new List<FormalizedMessage>(batchSize);
             try {
-                if (analyzedForStoring.Count >= batchSize) {
+                if (formalizedMessages.Count >= batchSize) {
                     
-                    for (int i = 0; i < Math.Min(batchSize, analyzedForStoring.Count); i++) {
-                        if (analyzedForStoring.TryTake(out var item)) {
-                            analyzedBatchList.Add(item);
+                    for (int i = 0; i < Math.Min(batchSize, formalizedMessages.Count); i++) {
+                        if (formalizedMessages.TryTake(out var item)) {
+                            batchToSave.Add(item);
                         }
                     }
-                    locLog.Information("analyzedBatchList.Count = {@analyzedCount}", analyzedBatchList.Count);
-                    var convertor = new OpenAiChoicesConvertor();
-                    convertor.ConvertToFormalized(analyzedBatchList);
-                    //TODO: here should be converting analyzing results to EF models
+                    locLog.Information("analyzedBatchList.Count = {@analyzedCount}", batchToSave.Count);
+                    //TODO: here should be converting formalized results to EF models and store to db
 
-                    //List<CurrencyExchange.EfModels.FormalizedMessage> formalizedList = convertor.ConvertToFormalized(analyzedBatchList);
                 }
                 await Task.Delay(SaveFormalizedSettings.IntervalSeconds * 1000);
             }
             catch (Exception ex) {
-                foreach (var analyzedMessage in analyzedBatchList) {
-                    analyzedForStoring.Add(analyzedMessage);
+                foreach (var analyzedMessage in batchToSave) {
+                    formalizedMessages.Add(analyzedMessage);
                 }
                 locLog.Error(ex, "messages have been returned to the analyzedForStoring.");
                 await Task.Delay(5000);
