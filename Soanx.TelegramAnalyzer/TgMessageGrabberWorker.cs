@@ -98,7 +98,7 @@ public class TgMessageGrabbingWorker: ITelegramWorker {
                 locLog.Information("OUT IsCancellationRequested.");
                 return;
             }
-            Task.Delay(TgGrabbingSettings.ReadingMessagesInterval).Wait();
+            await Task.Delay(TgGrabbingSettings.ReadingMessagesInterval);
         }
         locLog.Information("OUT");
     }

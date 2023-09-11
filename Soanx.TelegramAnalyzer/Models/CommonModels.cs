@@ -42,6 +42,7 @@ public class TgCurrencyAnalyzingSettings {
     public List<TgCurrencyAnalyzingChat> TgCurrencyAnalyzingChats { get; set; }
 }
 
+
 public class TgCurrencyAnalyzingChat {
     public string Comment { get; set; }
     public long ChatId { get; set; }

@@ -82,7 +82,7 @@ public class TgEngine {
             Messages msgBundle = await tdClient.GetChatHistoryAsync(chatId, limit: 100, onlyLocal: false);
             minUnixDate = msgBundle.Messages_.Min(m => m.Date);
             tdMessages.AddRange(msgBundle.Messages_);
-            Task.Delay(500).Wait();
+            await Task.Delay(500);
         } while (minUnixDate >= unixFromDate || tdMessages.Count <= 100);
 
         return tdMessages;

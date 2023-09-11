@@ -55,7 +55,7 @@ namespace Soanx.TelegramAnalyzer {
                     }
                 }
                 //TODO: change Delay to ManualResetEvent
-                Task.Delay(RunsInterval).Wait();
+                await Task.Delay(RunsInterval);
             }
             locLog.Information("OUT. CancellationToken has been triggered");
         }

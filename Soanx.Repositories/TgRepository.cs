@@ -89,32 +89,37 @@ namespace Soanx.Repositories
             }
         }
 
-        public async Task<List<MessageForAnalyzing>> GetTgMessagesByAnalyzedStatus(
-            TgMessage.TgMessageAnalyzedStatus currentStatus, TgMessage.TgMessageAnalyzedStatus newStatus, int count) {
+        public async Task<(bool isSuccess, List<MessageForAnalyzing>? messages)> GetTgMessagesByAnalyzedStatus(int minReturningCount,
+            TgMessage.TgMessageAnalyzedStatus currentStatus, TgMessage.TgMessageAnalyzedStatus newStatus) {
 
             var locLog = log.ForContext("method", "GetTgMessagesByAnalyzedStatus");
-            locLog.Verbose("IN, count:{@count}, analyzedStatus={@analyzedStatus}", count, currentStatus);
+            locLog.Verbose("IN, count:{@count}, analyzedStatus={@analyzedStatus}", minReturningCount, currentStatus);
 
             using (var db = CreateContext()) {
                 using (var transaction = db.Database.BeginTransaction(IsolationLevel.ReadCommitted)) {
                     try {
-                        var modifiedDateUTC = DateTime.UtcNow;
+                        int count = await db.TgMessage.CountAsync(m => m.AnalyzedStatus == currentStatus);
+                        if (count >= minReturningCount) {
 
-                        var tgMessages = await db.TgMessage
-                            .Where(m => m.AnalyzedStatus == currentStatus)
-                            .Take(count).ToListAsync();
+                            var modifiedDateUTC = DateTime.UtcNow;
 
-                        tgMessages.ForEach(ca => {
-                            ca.AnalyzedStatus = newStatus;
-                            ca.AnalyzedStatusModifiedDateUTC = modifiedDateUTC;
-                        });
-                        db.SaveChanges();
-                        transaction.Commit();
-                        
-                        if (tgMessages.Count > 0) {
-                            locLog.Debug("{@cnt} messages retrieved", tgMessages.Count);
+                            var tgMessages = await db.TgMessage
+                                .Where(m => m.AnalyzedStatus == currentStatus)
+                                .Take(minReturningCount).ToListAsync();
+
+                            tgMessages.ForEach(ca => {
+                                ca.AnalyzedStatus = newStatus;
+                                ca.AnalyzedStatusModifiedDateUTC = modifiedDateUTC;
+                            });
+                            db.SaveChanges();
+                            transaction.Commit();
+
+                            if (tgMessages.Count > 0) {
+                                locLog.Debug("{@cnt} messages retrieved", tgMessages.Count);
+                            }
+                            return (true, tgMessages.Select(m => new MessageForAnalyzing() { Id = m.Id, Text = m.Text }).ToList());
                         }
-                        return tgMessages.Select(m => new MessageForAnalyzing() { Id = m.Id, Text = m.Text }).ToList();
+                        return (false, null);
                     }
                     catch (Exception ex) {
                         transaction.Rollback();
@@ -122,7 +127,6 @@ namespace Soanx.Repositories
                         throw;
                     }
                 }
-                locLog.Verbose("OUT");
             }
         }
 
