@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Memory;
-using Soanx.CurrencyExchange.EfModels;
+using Soanx.CurrencyExchange.Models;
 using Soanx.Repositories;
 using Soanx.TelegramAnalyzer.Models;
 using System;
@@ -22,9 +22,9 @@ namespace Soanx.TelegramAnalyzer {
             tgRepository = new TgRepository(soanxConnectionString);
             CacheSettings = cacheSettings;
         }
-        public async Task<List<City>> GetCities() {
+        public async Task<List<EfModels.City>> GetCities() {
 
-            cache.TryGetValue(Keys.Cities, out List<City>? cities);
+            cache.TryGetValue(Keys.Cities, out List<EfModels.City>? cities);
             if (cities == null) {
                 cities = await tgRepository.GetCities();
                 var options = new MemoryCacheEntryOptions() {

@@ -1,7 +1,7 @@
 ﻿using OpenAI.ObjectModels.SharedModels;
 using Serilog;
 using Soanx.CurrencyExchange;
-using Soanx.CurrencyExchange.OpenAiDtoModels;
+using Soanx.CurrencyExchange.Models;
 using Soanx.Repositories;
 using Soanx.Repositories.Models;
 using Soanx.TelegramAnalyzer.Models;
@@ -19,17 +19,17 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
     private Serilog.ILogger log = Log.ForContext<CurrencyAnalyzingWorker>();
     private CancellationToken cancellationToken;
     //private ManualResetEvent newTgMessagesEvent = new(false);
-    private ConcurrentBag<MessageForAnalyzing> messagesForAnalyzing = new();
-    private ConcurrentBag<FormalizedMessage> formalizedMessages = new();
+    private ConcurrentBag<DtoModels.MessageForAnalyzing> messagesForAnalyzing = new();
+    private ConcurrentBag<DtoModels.FormalizedMessage> formalizedMessages = new();
     private TgRepository tgRepository;
     private List<Task> tasks = new List<Task>();
 
     public OpenAiSettings OpenAiSettings { get; private set; }
     public TgCurrencyAnalyzingSettings TgCurrencyExtractorSettings { get; private set; }
 
-    private LoopSettings ReadTgMessagesSettings = new LoopSettings() { BatchSize = 3, IntervalSeconds = 5 };
-    private LoopSettings AnalyzeSettings = new LoopSettings() { BatchSize = 3, IntervalSeconds = 5 };
-    private LoopSettings SaveFormalizedSettings = new LoopSettings() { BatchSize = 1, IntervalSeconds = 5 };
+    private LoopSettings ReadTgMessagesSettings = new() { BatchSize = 3, IntervalSeconds = 5 };
+    private LoopSettings AnalyzeSettings = new() { BatchSize = 3, IntervalSeconds = 5 };
+    private LoopSettings SaveFormalizedSettings = new() { BatchSize = 3, IntervalSeconds = 5 };
 
     /*
     Steps of processing data: 
@@ -70,7 +70,7 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
                         TgMessage.TgMessageAnalyzedStatus.Unknown, TgMessage.TgMessageAnalyzedStatus.InProcess);
 
                 if (result.isSuccess) {
-                    foreach (MessageForAnalyzing msg in result.messages!) {
+                    foreach(DtoModels.MessageForAnalyzing msg in result.messages!) {
                         messagesForAnalyzing.Add(msg);
                     }
                     locLog.Information("{@analyzingCount} messages read from db and added into messagesForAnalyzing collection.", messagesForAnalyzing.Count);
@@ -96,13 +96,13 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
             while (!cancellationToken.IsCancellationRequested) {
                 try {
                     if (messagesForAnalyzing.Count >= AnalyzeSettings.BatchSize) {
-                        List<MessageForAnalyzing> messagesList = TakeMessagesBatch(AnalyzeSettings.BatchSize);
+                        List<DtoModels.MessageForAnalyzing> messagesList = TakeMessagesBatch(AnalyzeSettings.BatchSize);
 
                         if (messagesList.Count > 0) {
                             locLog.Information("msg in collectionForAnalyzing = {@allCollection}, taken to save = {@takenCount}", messagesForAnalyzing.Count, messagesList.Count);
                             var result = await openAiApiClient.SendOpenAiRequest(messagesList);
                             if (result.IsSuccess) {
-                                List<FormalizedMessage> convertedList = OpenAiChoicesConvertor.ConvertToFormalized(result.Choices);
+                                List<DtoModels.FormalizedMessage> convertedList = OpenAiChoicesConvertor.ConvertToFormalized(result.Choices);
                                 foreach (var formalizedMessage in convertedList) {
                                     formalizedMessages.Add(formalizedMessage);
                                 }
@@ -124,10 +124,10 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
         locLog.Information("OUT");
 
         
-        List<MessageForAnalyzing> TakeMessagesBatch(int batchSize) {
+        List<DtoModels.MessageForAnalyzing> TakeMessagesBatch(int batchSize) {
             var locLog = log.ForContext("method", "TakeMessagesBatch()");
 
-            var messagesList = new List<MessageForAnalyzing>(batchSize);
+            var messagesList = new List<DtoModels.MessageForAnalyzing>(batchSize);
 
             for (int i = 0; i < Math.Min(batchSize, messagesForAnalyzing.Count); i++) {
                 if (messagesForAnalyzing.TryTake(out var item)) {
@@ -146,7 +146,7 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
 
         int batchSize = SaveFormalizedSettings.BatchSize;
         while (!cancellationToken.IsCancellationRequested) {
-            var batchToSave = new List<FormalizedMessage>(batchSize);
+            var batchToSave = new List<DtoModels.FormalizedMessage>(batchSize);
             try {
                 if (formalizedMessages.Count >= batchSize) {
                     

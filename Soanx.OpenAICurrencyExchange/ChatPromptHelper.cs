@@ -1,6 +1,6 @@
 ﻿using OpenAI.ObjectModels.RequestModels;
 using Serilog;
-using Soanx.CurrencyExchange.OpenAiDtoModels;
+using Soanx.CurrencyExchange.Models;
 
 namespace Soanx.CurrencyExchange;
 public class ChatPromptHelper {
@@ -12,8 +12,8 @@ public class ChatPromptHelper {
     public string FormalizedMessagesJson {  get; private set; }
     public List<ChatMessage> PromptingSetList { get; private set; }
 
-    private List<FormalizedMessageEx> messagesExList;
-    private List<FormalizedMessage> messagesList;
+    private List<DtoModels.FormalizedMessageEx> messagesExList;
+    private List<DtoModels.FormalizedMessage> messagesList;
 
     public static async Task<ChatPromptHelper> CreateNew(string corpusName) {
         var helper = new ChatPromptHelper();
@@ -35,10 +35,10 @@ public class ChatPromptHelper {
 
         using FileStream promptJson = File.OpenRead(Path.Combine(relatedPath, "Examples.json"));
 
-        messagesExList = await SerializationHelper.DeserializeJsonAsync<List<FormalizedMessageEx>>(promptJson);
-        messagesList = messagesExList.ConvertAll<FormalizedMessage>(m => (FormalizedMessage)m);
+        messagesExList = await SerializationHelper.DeserializeJsonAsync<List<DtoModels.FormalizedMessageEx>>(promptJson);
+        messagesList = messagesExList.ConvertAll<DtoModels.FormalizedMessage>(m => (DtoModels.FormalizedMessage)m);
 
-        MessagesJson = SerializationHelper.Serialize<IEnumerable<MessageForAnalyzing>>(
+        MessagesJson = SerializationHelper.Serialize<IEnumerable<DtoModels.MessageForAnalyzing>>(
             messagesExList.Select(ex => ex.Message));
 
         FormalizedMessagesJson = SerializationHelper.Serialize(messagesList);

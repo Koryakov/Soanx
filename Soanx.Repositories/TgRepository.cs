@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Serilog;
-using Soanx.CurrencyExchange.EfModels;
-using Soanx.CurrencyExchange.OpenAiDtoModels;
+using Soanx.CurrencyExchange;
+using Soanx.CurrencyExchange.Models;
 using Soanx.Repositories.Models;
 using System;
 using System.Collections;
@@ -89,7 +89,7 @@ namespace Soanx.Repositories
             }
         }
 
-        public async Task<(bool isSuccess, List<MessageForAnalyzing>? messages)> GetTgMessagesByAnalyzedStatus(int minReturningCount,
+        public async Task<(bool isSuccess, List<DtoModels.MessageForAnalyzing>? messages)> GetTgMessagesByAnalyzedStatus(int minReturningCount,
             TgMessage.TgMessageAnalyzedStatus currentStatus, TgMessage.TgMessageAnalyzedStatus newStatus) {
 
             var locLog = log.ForContext("method", "GetTgMessagesByAnalyzedStatus");
@@ -117,7 +117,7 @@ namespace Soanx.Repositories
                             if (tgMessages.Count > 0) {
                                 locLog.Debug("{@cnt} messages retrieved", tgMessages.Count);
                             }
-                            return (true, tgMessages.Select(m => new MessageForAnalyzing() { Id = m.Id, Text = m.Text }).ToList());
+                            return (true, tgMessages.Select(m => new DtoModels.MessageForAnalyzing() { Id = m.Id, Text = m.Text }).ToList());
                         }
                         return (false, null);
                     }
@@ -130,7 +130,7 @@ namespace Soanx.Repositories
             }
         }
 
-        public async Task<List<City>> GetCities() {
+        public async Task<List<EfModels.City>> GetCities() {
             var locLog = log.ForContext("method", "GetCities");
             locLog.Debug("IN");
             using (var db = CreateContext()) {

@@ -5,7 +5,7 @@ using OpenAI.ObjectModels.ResponseModels;
 using OpenAI.ObjectModels.SharedModels;
 using Serilog;
 using Soanx.CurrencyExchange;
-using Soanx.CurrencyExchange.OpenAiDtoModels;
+using Soanx.CurrencyExchange.Models;
 using System.Reflection.Metadata.Ecma335;
 
 namespace Soanx.TelegramAnalyzer;
@@ -65,13 +65,13 @@ public class OpenAiApiClient {
     //    return result.IsSuccess;
     //}
 
-    public async Task<ChatChoiceResult> SendOpenAiRequest(List<MessageForAnalyzing> messages) {
+    public async Task<ChatChoiceResult> SendOpenAiRequest(List<DtoModels.MessageForAnalyzing> messages) {
         var locLog = log.ForContext("method", "SendOpenAiRequest(List<MessageForAnalyzing> messages)");
         locLog.Debug("IN. MessageForAnalyzing count = {@msgListCount}", messages.Count);
 
         var openAiRequest = new ChatCompletionCreateRequest() { Model = openAiModelName };
         openAiRequest.Messages = chatPromptHelper.PromptingSetList;
-        var jsonMessages = SerializationHelper.Serialize<List<MessageForAnalyzing>>(messages);
+        var jsonMessages = SerializationHelper.Serialize<List<DtoModels.MessageForAnalyzing>>(messages);
         openAiRequest.Messages.Add(ChatMessage.FromUser(jsonMessages));
 
         var result = await SendOpenAiRequest(openAiRequest);
