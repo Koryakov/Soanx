@@ -22,17 +22,21 @@ namespace Soanx.TelegramAnalyzer {
             tgRepository = new TgRepository(soanxConnectionString);
             CacheSettings = cacheSettings;
         }
-        public async Task<List<EfModels.City>> GetCities() {
+        public async Task<Dictionary<string, EfModels.City>> GetCityDictionary() {
 
-            cache.TryGetValue(Keys.Cities, out List<EfModels.City>? cities);
-            if (cities == null) {
-                cities = await tgRepository.GetCities();
+            cache.TryGetValue(Keys.Cities, out Dictionary<string, EfModels.City>? cityDictionary);
+            if (cityDictionary == null) {
+                List<EfModels.City> cityList = await tgRepository.GetCities();
+                cityDictionary = new();
+                foreach (EfModels.City city in cityList) {
+                    cityDictionary.Add(city.Name, city);
+                }
                 var options = new MemoryCacheEntryOptions() {
                     SlidingExpiration = TimeSpan.FromMinutes(CacheSettings.DefaultExpirationMinutes)
                 };
-                cache.Set(Keys.Cities, cities, options);
+                cache.Set(Keys.Cities, cityDictionary, options);
             }
-            return cities;
+            return cityDictionary;
         }
     }
 }

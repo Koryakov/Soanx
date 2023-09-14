@@ -67,12 +67,14 @@ public class OpenAiApiClient {
 
     public async Task<ChatChoiceResult> SendOpenAiRequest(List<DtoModels.MessageForAnalyzing> messages) {
         var locLog = log.ForContext("method", "SendOpenAiRequest(List<MessageForAnalyzing> messages)");
-        locLog.Debug("IN. MessageForAnalyzing count = {@msgListCount}", messages.Count);
+        locLog.Debug("IN");
 
         var openAiRequest = new ChatCompletionCreateRequest() { Model = openAiModelName };
         openAiRequest.Messages = chatPromptHelper.PromptingSetList;
         var jsonMessages = SerializationHelper.Serialize<List<DtoModels.MessageForAnalyzing>>(messages);
         openAiRequest.Messages.Add(ChatMessage.FromUser(jsonMessages));
+
+        locLog.Debug<IList<ChatMessage>>("openAiRequest.Messages: {@openAiRequestMessages}", openAiRequest.Messages);
 
         var result = await SendOpenAiRequest(openAiRequest);
         locLog.Debug("OUT.");

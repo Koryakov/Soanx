@@ -22,13 +22,14 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
     private ConcurrentBag<DtoModels.MessageForAnalyzing> messagesForAnalyzing = new();
     private ConcurrentBag<DtoModels.FormalizedMessage> formalizedMessages = new();
     private TgRepository tgRepository;
+    private Cache cache;
     private List<Task> tasks = new List<Task>();
 
     public OpenAiSettings OpenAiSettings { get; private set; }
     public TgCurrencyAnalyzingSettings TgCurrencyExtractorSettings { get; private set; }
 
     private LoopSettings ReadTgMessagesSettings = new() { BatchSize = 3, IntervalSeconds = 5 };
-    private LoopSettings AnalyzeSettings = new() { BatchSize = 3, IntervalSeconds = 5 };
+    private LoopSettings AnalyzeSettings = new() { BatchSize = 3, IntervalSeconds = 15 };
     private LoopSettings SaveFormalizedSettings = new() { BatchSize = 3, IntervalSeconds = 5 };
 
     /*
@@ -38,12 +39,13 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
     3) Saving formalized to db (count)
 
     */
-    public CurrencyAnalyzingWorker(OpenAiSettings openAiSettings,
-        TgCurrencyAnalyzingSettings tgCurrencyExtractorSettings, string soanxConnectionString) {
+    public CurrencyAnalyzingWorker(OpenAiSettings openAiSettings, TgCurrencyAnalyzingSettings tgCurrencyExtractorSettings,
+        string soanxConnectionString, CacheSettings cacheSettings) {
 
         tgRepository = new TgRepository(soanxConnectionString);
         OpenAiSettings = openAiSettings;
         TgCurrencyExtractorSettings = tgCurrencyExtractorSettings;
+        cache = new Cache(cacheSettings, soanxConnectionString);
     }
 
     public async Task Run(CancellationToken cancellationToken) {
@@ -96,15 +98,26 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
             while (!cancellationToken.IsCancellationRequested) {
                 try {
                     if (messagesForAnalyzing.Count >= AnalyzeSettings.BatchSize) {
-                        List<DtoModels.MessageForAnalyzing> messagesList = TakeMessagesBatch(AnalyzeSettings.BatchSize);
+                        List<DtoModels.MessageForAnalyzing> messagesList = TakeMessagesBatchForAnalyzing(AnalyzeSettings.BatchSize);
 
                         if (messagesList.Count > 0) {
                             locLog.Information("msg in collectionForAnalyzing = {@allCollection}, taken to save = {@takenCount}", messagesForAnalyzing.Count, messagesList.Count);
-                            var result = await openAiApiClient.SendOpenAiRequest(messagesList);
-                            if (result.IsSuccess) {
-                                List<DtoModels.FormalizedMessage> convertedList = OpenAiChoicesConvertor.ConvertToFormalized(result.Choices);
-                                foreach (var formalizedMessage in convertedList) {
-                                    formalizedMessages.Add(formalizedMessage);
+                            //TODO: Check for context_length_exceeded must be done here
+                            var chatChoiceResultList = await openAiApiClient.SendOpenAiRequest(messagesList);
+                            
+                            if (chatChoiceResultList.IsSuccess) {
+                                var result = OpenAiChoicesConvertor.ConvertToFormalized(chatChoiceResultList.Choices);
+                                if (result.isSuccess) {
+                                    foreach (var formalizedMessage in result.formalizedMessages!) {
+                                        formalizedMessages.Add(formalizedMessage);
+                                    }
+                                } else {
+                                    //formalizedMessages returned from OpenAI are not in consistent state.
+                                    //Usually it's result of wrong OpenAI behavior. So we need to formalize it again
+                                    foreach (var message in messagesList) {
+                                        messagesForAnalyzing.Add(message);
+                                    }
+                                    locLog.Warning("Incorrectly formalized messages were returned to collection to formalize again.");
                                 }
                             }
                             else {
@@ -124,12 +137,12 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
         locLog.Information("OUT");
 
         
-        List<DtoModels.MessageForAnalyzing> TakeMessagesBatch(int batchSize) {
-            var locLog = log.ForContext("method", "TakeMessagesBatch()");
+        List<DtoModels.MessageForAnalyzing> TakeMessagesBatchForAnalyzing(int batchSize) {
+            var locLog = log.ForContext("method", "TakeMessagesBatchForAnalyzing()");
 
             var messagesList = new List<DtoModels.MessageForAnalyzing>(batchSize);
-
-            for (int i = 0; i < Math.Min(batchSize, messagesForAnalyzing.Count); i++) {
+            int count = Math.Min(batchSize, messagesForAnalyzing.Count);
+            for (int i = 0; i < count; i++) {
                 if (messagesForAnalyzing.TryTake(out var item)) {
                     messagesList.Add(item);
                 }
@@ -149,15 +162,17 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
             var batchToSave = new List<DtoModels.FormalizedMessage>(batchSize);
             try {
                 if (formalizedMessages.Count >= batchSize) {
-                    
-                    for (int i = 0; i < Math.Min(batchSize, formalizedMessages.Count); i++) {
+                    for (int i = 0; i < batchSize; i++) {
                         if (formalizedMessages.TryTake(out var item)) {
                             batchToSave.Add(item);
                         }
                     }
                     locLog.Information("analyzedBatchList.Count = {@analyzedCount}", batchToSave.Count);
-                    //TODO: here should be converting formalized results to EF models and store to db
-
+                    //TODO: Here, formalized messages should be converted to EF entities and saved to db
+                    //TODO: In the future conversion should be performed as soon as new formalized message is created.
+                    List<EfModels.ExchangeOffer> exchangeOfferList = 
+                        ModelsConvertor.ConvertDtoToEf(batchToSave, await cache.GetCityDictionary());
+                    tgRepository.AddExchangeOffers(exchangeOfferList);
                 }
                 await Task.Delay(SaveFormalizedSettings.IntervalSeconds * 1000);
             }

@@ -2,6 +2,8 @@
 using Soanx.CurrencyExchange;
 using Soanx.CurrencyExchange.Models;
 using Soanx.Repositories.Models;
+using System.Text.Json;
+using static Soanx.CurrencyExchange.Models.EfModels;
 
 namespace Soanx.Repositories
 {
@@ -10,6 +12,9 @@ namespace Soanx.Repositories
         public DbSet<TgMessage> TgMessage { get; set; }
         public DbSet<TgMessage2> TgMessage2 { get; set; }
         public DbSet<TgMessageRaw> TgMessageRaw { get; set; }
+        public DbSet<EfModels.ExchangeOffer> ExchangeOffer { get; set; }
+        public DbSet<EfModels.CurrencyOffer> CurrencyOffer { get; set; }
+        public DbSet<EfModels.CityExchangeOffer> CityExchangeOffer { get; set; }
         public DbSet<EfModels.City> City { get; set; }
         public DbSet<EfModels.Country> Country { get; set; }
 
@@ -27,6 +32,8 @@ namespace Soanx.Repositories
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
+
+            //Many-to-many City - ExchangeOffer
             modelBuilder.Entity<EfModels.CityExchangeOffer>()
                 .HasKey(ce => new { ce.CityId, ce.ExchangeOfferId });
 
@@ -58,6 +65,10 @@ namespace Soanx.Repositories
             modelBuilder.Entity<EfModels.CurrencyOffer>()
                 .Property(co => co.ExchangeTypeId)
                 .HasConversion<int>();
+
+            modelBuilder.Entity<CurrencyOffer>()
+           .Property(e => e.BankNames)
+           .HasColumnType("jsonb");
         }
     }
 }

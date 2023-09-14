@@ -53,8 +53,11 @@ public class ChatPromptHelper {
 
     private void InitializePromptsCollection() {
         PromptingSetList = new List<ChatMessage>() {
-        ChatMessage.FromSystem(Instruction),
-        ChatMessage.FromSystem(ResultSchemaJson),
+        //ChatMessage.FromSystem(Instruction),
+        //ChatMessage.FromSystem(ResultSchemaJson),
+        ChatMessage.FromUser(Instruction),
+        ChatMessage.FromUser(ResultSchemaJson),
+
         ChatMessage.FromUser(MessagesJson),
         ChatMessage.FromAssistant(FormalizedMessagesJson),
         };

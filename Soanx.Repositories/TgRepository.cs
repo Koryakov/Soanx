@@ -140,5 +140,15 @@ namespace Soanx.Repositories
                 return cities;
             }
         }
+
+        public async Task AddExchangeOffers(List<EfModels.ExchangeOffer> exchangeOffers) {
+            var locLog = log.ForContext("method", "AddExchangeOffers()");
+            locLog.Debug<List<EfModels.ExchangeOffer>>("IN, exchangeOffers: {@exchangeOffers}", exchangeOffers);
+
+            using (var db = CreateContext()) {
+                await db.ExchangeOffer.AddRangeAsync(exchangeOffers);
+                await db.SaveChangesAsync();
+            }
+        }
     }
 }

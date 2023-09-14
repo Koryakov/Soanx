@@ -32,18 +32,18 @@ public class DtoModels {
         public List<string>? Cities { get; set; }
         public CurrencyInfo Sell { get; set; }
         public CurrencyInfo Buy { get; set; }
-        public SellToBuyRate SellToBuyRate { get; set; }
+        public decimal? RateMin { get; set; }
+        public decimal? RateMax { get; set; }
     }
 
     public class CurrencyInfo {
         public List<string> Currencies { get; set; }
         public decimal? AmountMin { get; set; }
         public decimal? AmountMax { get; set; }
-        public List<string> BanksTo { get; set; }
+        public List<string> Banks { get; set; }
 
     }
     public class SellToBuyRate {
-        public decimal? RateMin { get; set; }
-        public decimal? RateMax { get; set; }
+        
     }
 }

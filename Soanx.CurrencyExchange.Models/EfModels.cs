@@ -10,15 +10,9 @@ namespace Soanx.CurrencyExchange.Models;
 
 public class EfModels {
 
-    public class FormalizedMessage {
-        public long Id { get; set; }
-        public bool? NotMatched { get; set; }
-        public List<ExchangeOffer> ExchangeOffers { get; set; }
-    }
-
     public class ExchangeOffer {
         public int Id { get; set; }
-        public int TgMessageId { get; set; }
+        public long TgMessageId { get; set; }
         public int SellCurrencyOfferId { get; set; }
         public int BuyCurrencyOfferId { get; set; }
         public decimal? RateMin { get; set; }
@@ -30,21 +24,17 @@ public class EfModels {
 
     public class CurrencyOffer {
         public int Id { get; set; }
-        public int ExchangeTypeId { get; set; }
+        //public int ExchangeTypeId { get; set; }
         public decimal? AmountMin { get; set; }
         public decimal? AmountMax { get; set; }
-        public ExchangeType ExchangeType { get; set; }
-    }
-
-    public class Bank {
-        public int Id { get; set; }
-        public string Name { get; set; }
+        public ExchangeType ExchangeTypeId { get; set; }
+        public List<string> BankNames { get; set; }
     }
 
     public class City {
         public int Id { get; set; }
         public string Name { get; set; }
-        public int? CountryId { get; set; }
+        public int CountryId { get; set; }
         public Country Country { get; set; }
         public ICollection<CityExchangeOffer> CityExchangeOffers { get; set; }
     }
@@ -59,7 +49,7 @@ public class EfModels {
     public class Country {
         public int Id { get; set; }
         public string Name { get; set; }
-        public List<City> Cities { get; set; }
+        //public List<City> Cities { get; set; }
     }
 
     public enum ExchangeType : int {
@@ -75,7 +65,7 @@ public class EfModels {
     }
 
     public enum CurrencyEnum {
-        Unknown = 0,
+        Other = 0,
         USDT = 1,
         USDC = 2,
         BUSD = 3,
