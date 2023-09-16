@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Soanx.CurrencyExchange.Models;
@@ -17,14 +18,22 @@ public class EfModels {
         public int BuyCurrencyOfferId { get; set; }
         public decimal? RateMin { get; set; }
         public decimal? RateMax { get; set; }
+        public DateTime CreatedDateUtc { get; set; }
         public CurrencyOffer SellCurrencyOffer { get; set; }
         public CurrencyOffer BuyCurrencyOffer { get; set; }
         public ICollection<CityExchangeOffer> CityExchangeOffers { get; set; }
     }
 
-    public class CurrencyOffer {
+    public interface ICurrencyOffer {
+        int Id { get; set; }
+        decimal? AmountMin { get; set; }
+        decimal? AmountMax { get; set; }
+        ExchangeType ExchangeTypeId { get; set; }
+        List<string> BankNames { get; set; }
+    }
+
+    public class CurrencyOffer : ICurrencyOffer {
         public int Id { get; set; }
-        //public int ExchangeTypeId { get; set; }
         public decimal? AmountMin { get; set; }
         public decimal? AmountMax { get; set; }
         public ExchangeType ExchangeTypeId { get; set; }
@@ -35,14 +44,14 @@ public class EfModels {
         public int Id { get; set; }
         public string Name { get; set; }
         public int CountryId { get; set; }
-        public Country Country { get; set; }
+        //public Country Country { get; set; }
         public ICollection<CityExchangeOffer> CityExchangeOffers { get; set; }
     }
 
     public class CityExchangeOffer {
         public int CityId { get; set; }
-        public int ExchangeOfferId { get; set; }
         public City City { get; set; }
+        public int ExchangeOfferId { get; set; }
         public ExchangeOffer ExchangeOffer { get; set; }
     }
 

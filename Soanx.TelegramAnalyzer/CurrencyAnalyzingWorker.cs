@@ -28,9 +28,9 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
     public OpenAiSettings OpenAiSettings { get; private set; }
     public TgCurrencyAnalyzingSettings TgCurrencyExtractorSettings { get; private set; }
 
-    private LoopSettings ReadTgMessagesSettings = new() { BatchSize = 3, IntervalSeconds = 5 };
-    private LoopSettings AnalyzeSettings = new() { BatchSize = 3, IntervalSeconds = 15 };
-    private LoopSettings SaveFormalizedSettings = new() { BatchSize = 3, IntervalSeconds = 5 };
+    private LoopSettings ReadTgMessagesSettings = new() { BatchSize = 1, IntervalSeconds = 5 };
+    private LoopSettings AnalyzeSettings = new() { BatchSize = 1, IntervalSeconds = 15 };
+    private LoopSettings SaveFormalizedSettings = new() { BatchSize = 1, IntervalSeconds = 5 };
 
     /*
     Steps of processing data: 
@@ -168,19 +168,16 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
                         }
                     }
                     locLog.Information("analyzedBatchList.Count = {@analyzedCount}", batchToSave.Count);
+                    var cityDictionary = await cache.GetCityDictionary();
                     //TODO: Here, formalized messages should be converted to EF entities and saved to db
                     //TODO: In the future conversion should be performed as soon as new formalized message is created.
-                    List<EfModels.ExchangeOffer> exchangeOfferList = 
-                        ModelsConvertor.ConvertDtoToEf(batchToSave, await cache.GetCityDictionary());
-                    tgRepository.AddExchangeOffers(exchangeOfferList);
+                    List<EfModels.ExchangeOffer> exchangeOfferList = ModelsConvertor.ConvertDtoToEf(batchToSave, cityDictionary);
+                    await tgRepository.SaveExchangeOffers(exchangeOfferList);
                 }
                 await Task.Delay(SaveFormalizedSettings.IntervalSeconds * 1000);
             }
             catch (Exception ex) {
-                foreach (var analyzedMessage in batchToSave) {
-                    formalizedMessages.Add(analyzedMessage);
-                }
-                locLog.Error(ex, "messages have been returned to the analyzedForStoring.");
+                locLog.Error(ex, "Error due to saving formalized messages");
                 await Task.Delay(5000);
             }
 

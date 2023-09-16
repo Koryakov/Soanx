@@ -134,16 +134,19 @@ namespace Soanx.Repositories
             var locLog = log.ForContext("method", "GetCities");
             locLog.Debug("IN");
             using (var db = CreateContext()) {
-                var cities = await db.City.Include(c => c.Country).ToListAsync();
+                var cities = await db.City.AsNoTracking().ToListAsync();
 
                 locLog.Debug("{@cnt} cities retrieved", cities.Count);
                 return cities;
             }
         }
 
-        public async Task AddExchangeOffers(List<EfModels.ExchangeOffer> exchangeOffers) {
-            var locLog = log.ForContext("method", "AddExchangeOffers()");
+        public async Task SaveExchangeOffers(List<EfModels.ExchangeOffer> exchangeOffers) {
+            var locLog = log.ForContext("method", "SaveExchangeOffers()");
             locLog.Debug<List<EfModels.ExchangeOffer>>("IN, exchangeOffers: {@exchangeOffers}", exchangeOffers);
+
+            var utcNow = DateTime.UtcNow;
+            exchangeOffers.ForEach(eo => eo.CreatedDateUtc = utcNow);
 
             using (var db = CreateContext()) {
                 await db.ExchangeOffer.AddRangeAsync(exchangeOffers);

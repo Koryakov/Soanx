@@ -15,42 +15,47 @@ public class ModelsConvertor {
         var exchangeOfferList = new List<EfModels.ExchangeOffer>();
 
         foreach (FormalizedMessage dtoMessage in dtoMessages) {
-            var exchangeOffer = new EfModels.ExchangeOffer();
-            exchangeOffer.TgMessageId = dtoMessage.Id;
-
             foreach (Offer dtoOffer in dtoMessage.Offers) {
-                
-                exchangeOffer.SellCurrencyOffer = new CurrencyOffer() {
-                    ExchangeTypeId = ExchangeType.Sell,
-                    AmountMax = dtoOffer.Sell.AmountMax,
-                    AmountMin = dtoOffer.Sell.AmountMin,
-                    BankNames = dtoOffer.Sell.Banks
-                };
-                exchangeOffer.BuyCurrencyOffer= new CurrencyOffer() {
-                    ExchangeTypeId = ExchangeType.Buy,
-                    AmountMax = dtoOffer.Buy.AmountMax,
-                    AmountMin = dtoOffer.Buy.AmountMin,
-                    BankNames = dtoOffer.Buy.Banks
-                };
+                var exchangeOffer = new EfModels.ExchangeOffer();
+                exchangeOffer.TgMessageId = dtoMessage.Id;
+
+                exchangeOffer.SellCurrencyOffer = (CurrencyOffer)InitCurrencyOffer(ExchangeType.Sell, dtoOffer.Sell);
+                exchangeOffer.BuyCurrencyOffer = (CurrencyOffer)InitCurrencyOffer(ExchangeType.Buy, dtoOffer.Buy);
 
                 exchangeOffer.RateMax = dtoOffer.RateMax;
                 exchangeOffer.RateMin = dtoOffer.RateMin;
 
-                 var ceo = new List<CityExchangeOffer>();
-                //TODO: Parse the City list to entities. Need to clarify string format for cities.
-                exchangeOffer.CityExchangeOffers = ceo;
-
                 var cityNames = Enumerable.Empty<string>();
                 if (dtoOffer.Cities?.Count() > 0) {
                     cityNames = dtoOffer.Cities;
-                } else if (dtoMessage.Cities?.Count() > 0) {
+                }
+                else if (dtoMessage.Cities?.Count() > 0) {
                     cityNames = dtoMessage.Cities;
                 }
                 exchangeOffer.CityExchangeOffers = GetOfferCities(exchangeOffer, cityNames);
+                exchangeOfferList.Add(exchangeOffer);
             }
-            exchangeOfferList.Add(exchangeOffer);
         }
         return exchangeOfferList;
+
+        ICurrencyOffer InitCurrencyOffer(ExchangeType exchangeType, CurrencyInfo currencyInfo) {
+            if (currencyInfo == null
+                ||
+                currencyInfo.AmountMax == null
+                && currencyInfo.AmountMin == null
+                && currencyInfo.Banks != null && currencyInfo.Banks.Count() == 0) {
+                return null;
+            }
+            else {
+                var currencyOffer = new CurrencyOffer() {
+                    ExchangeTypeId = ExchangeType.Buy,
+                    AmountMax = currencyInfo.AmountMax,
+                    AmountMin = currencyInfo.AmountMin,
+                    BankNames = currencyInfo.Banks
+                };
+                return currencyOffer;
+            }
+        }
 
         List<CityExchangeOffer> GetOfferCities(ExchangeOffer exchangeOffer, IEnumerable<string> cityNames) {
             var ceo = new List<CityExchangeOffer>();
@@ -66,7 +71,4 @@ public class ModelsConvertor {
         }
     }
 
-    private void InitCities(Dictionary<string, EfModels.City> cityDictionary) {
-
-    }
 }

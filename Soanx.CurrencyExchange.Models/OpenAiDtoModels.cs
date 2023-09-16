@@ -40,7 +40,7 @@ public class DtoModels {
         public List<string> Currencies { get; set; }
         public decimal? AmountMin { get; set; }
         public decimal? AmountMax { get; set; }
-        public List<string> Banks { get; set; }
+        public List<string>? Banks { get; set; }
 
     }
     public class SellToBuyRate {

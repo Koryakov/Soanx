@@ -2,7 +2,10 @@
   "Serilog": {
     "Using": [ "Serilog.Sinks.File", "Serilog.Enrichers.Context" ],
     "MinimumLevel": {
-      "Default": "Debug"
+      "Default": "Information",
+      "Override": {
+        "Soanx.Repositories.SoanxDbContext": "Information"
+      }
     },
     "WriteTo": [
       {
