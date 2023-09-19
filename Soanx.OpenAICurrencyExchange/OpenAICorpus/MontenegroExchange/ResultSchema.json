@@ -9,7 +9,7 @@
       },
       "Cities": {
         "type": "array",
-        "enum": ["OnRequest", "Podgorica", "Niksic", "Cetinje", "Budva", "Bar", "HercegNovi", "Ulcinj", "Tivat", "BijeloPolje", "Kotor", "Petrovac", "Pluzine", "Rozaje", "Danilovgrad", "Berane", "Mojkovac", "Pljevlja", "Kolasin", "Andrijevica", "Zabljak", "Sutomore", "Gusinje", "Muo", "Perast", "Risan", "Tuzi", "Susic"],
+        "enum": ["OnRequest", "Podgorica", "Niksic", "Cetinje", "Budva", "Becici", "Bar", "HercegNovi", "Ulcinj", "Tivat", "BijeloPolje", "Kotor", "Petrovac", "Pluzine", "Rozaje", "Danilovgrad", "Berane", "Mojkovac", "Pljevlja", "Kolasin", "Andrijevica", "Zabljak", "Sutomore", "Gusinje", "Muo", "Perast", "Risan", "Tuzi", "Susic"],
         "items": {
           "type": "string"
         }
@@ -21,7 +21,7 @@
           "properties": {
             "Cities": {
               "type": "array",
-              "enum": ["OnRequest", "Podgorica", "Niksic", "Cetinje", "Budva", "Bar", "HercegNovi", "Ulcinj", "Tivat", "BijeloPolje", "Kotor", "Petrovac", "Pluzine", "Rozaje", "Danilovgrad", "Berane", "Mojkovac", "Pljevlja", "Kolasin", "Andrijevica", "Zabljak", "Sutomore", "Gusinje", "Muo", "Perast", "Risan", "Tuzi", "Susic"],
+              "enum": ["OnRequest", "Podgorica", "Niksic", "Cetinje", "Budva", "Becici", "Bar", "HercegNovi", "Ulcinj", "Tivat", "BijeloPolje", "Kotor", "Petrovac", "Pluzine", "Rozaje", "Danilovgrad", "Berane", "Mojkovac", "Pljevlja", "Kolasin", "Andrijevica", "Zabljak", "Sutomore", "Gusinje", "Muo", "Perast", "Risan", "Tuzi", "Susic"],
               "items": {
                 "type": "string"
               }

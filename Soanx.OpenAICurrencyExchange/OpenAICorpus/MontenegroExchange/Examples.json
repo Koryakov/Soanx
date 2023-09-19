@@ -1,4 +1,63 @@
 [
+  //Куплю Ваш рубль безнал по 107,5
+  //Куплю USDT по 0.921
+  //Есть счетная машинка
+  //Будва, Бечичи от 1000 евро
+  //Остальные города от 5000 евро
+  {
+    "Message": {
+      "Id": 1757413376,
+      "Text": "Куплю Ваш рубль безнал по 107,5  Куплю USDT по 0.921\r\n  Есть счетная машинка\r\n  Будва, Бечичи от 1000 евро\r\n  Остальные города от 5000 евро"
+    },
+    "Id": 1757413376,
+    "Offers": [
+      {
+        "Cities": ["Budva", "Becici"],
+        "Sell": {
+          "Currencies": ["EUR"]
+        },
+        "Buy": {
+          "Currencies": ["RUB"]
+        },
+        "RateMin": 107.5,
+        "AmountMin": 1000
+      },
+      {
+        "Cities": ["Budva", "Becici"],
+        "Sell": {
+          "Currencies": ["EUR"]
+        },
+        "Buy": {
+          "Currencies": ["USDT"]
+        },
+        "RateMin": 0.921,
+        "AmountMin": 1000
+      },
+      {
+        "Cities": ["OnRequest"],
+        "Sell": {
+          "Currencies": ["EUR"]
+        },
+        "Buy": {
+          "Currencies": ["RUB"]
+        },
+        "RateMin": 107.5,
+        "AmountMin": 5000
+      },
+      {
+        "Cities": ["OnRequest"],
+        "Sell": {
+          "Currencies": ["EUR"]
+        },
+        "Buy": {
+          "Currencies": ["USDT"]
+        },
+        "RateMin": 0.921,
+        "AmountMin": 5000
+      }
+    ]
+  },
+
   //✅Купим ваш рубль на карте за наш евро кеш
   //Курс от 91,8 - 92,5 (зависит от объема)
   //✅Купим ваш usdt/usdc за наш евро кеш

@@ -50,7 +50,7 @@ namespace Soanx.Repositories
 
             //Many-to-many City - ExchangeOffer
             modelBuilder.Entity<CityExchangeOffer>()
-           .HasKey(ce => new { ce.CityId, ce.ExchangeOfferId });
+                .HasKey(ce => new { ce.CityId, ce.ExchangeOfferId });
 
             modelBuilder.Entity<CityExchangeOffer>()
                 .HasOne(ce => ce.City)
@@ -58,20 +58,23 @@ namespace Soanx.Repositories
                 .HasForeignKey(ce => ce.CityId);
 
             modelBuilder.Entity<CityExchangeOffer>()
-                .HasOne(ce => ce.ExchangeOffer)
-                .WithMany(e => e.CityExchangeOffers)
+                .HasOne(ceo => ceo.ExchangeOffer)
+                .WithMany(eo => eo.CityExchangeOffers)
                 .HasForeignKey(ce => ce.ExchangeOfferId);
-        
-            //modelBuilder.Entity<EfModels.ExchangeOffer>()
-        //    .HasMany<EfModels.City>(e => e.Cities)
-        //    .WithMany(c => c.ExchangeOffers);
 
-        //modelBuilder.Entity<EfModels.City>()
-        //    .HasOne<EfModels.Country>(c => c.Country)
-        //    .WithMany()
-        //    .HasForeignKey(c => c.CountryId);
 
-        modelBuilder.Entity<EfModels.ExchangeOffer>()
+            modelBuilder.Entity<CurrencyOfferCurrency>()
+                .HasKey(ce => new { ce.CurrencyOfferId, ce.CurrencyId });
+            modelBuilder.Entity<EfModels.CurrencyOfferCurrency>()
+                .HasOne<EfModels.CurrencyOffer>(coc => coc.CurrencyOffer)
+                .WithMany(co => co.CurrencyOfferCurrencies);
+
+            //modelBuilder.Entity<EfModels.City>()
+            //    .HasOne<EfModels.Country>(c => c.Country)
+            //    .WithMany()
+            //    .HasForeignKey(c => c.CountryId);
+
+            modelBuilder.Entity<EfModels.ExchangeOffer>()
                 .HasOne<EfModels.CurrencyOffer>(eo => eo.SellCurrencyOffer)
                 .WithMany()
                 .HasForeignKey(eo => eo.SellCurrencyOfferId);

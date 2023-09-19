@@ -7,6 +7,7 @@ using Soanx.Repositories.Models;
 using Soanx.TelegramAnalyzer.Models;
 using System.Collections.Concurrent;
 using Telegram.Bot.Types;
+using static Soanx.CurrencyExchange.Models.DtoModels;
 
 namespace Soanx.TelegramAnalyzer;
 public class CurrencyAnalyzingWorker : ITelegramWorker {
@@ -21,6 +22,7 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
     //private ManualResetEvent newTgMessagesEvent = new(false);
     private ConcurrentBag<DtoModels.MessageForAnalyzing> messagesForAnalyzing = new();
     private ConcurrentBag<DtoModels.FormalizedMessage> formalizedMessages = new();
+    private ConcurrentBag<DtoModels.FormalizedMessage> notMatchedMessages = new();
     private TgRepository tgRepository;
     private Cache cache;
     private List<Task> tasks = new List<Task>();
@@ -91,9 +93,9 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
 
         try {
             var mneExchangePromptHelper = await ChatPromptHelper.CreateNew("MontenegroExchange");
-
+            //TODO: Gtp model name should be moved to appsettings
             var openAiApiClient = new OpenAiApiClient(
-                OpenAiSettings.OpenAiApiKey, mneExchangePromptHelper, OpenAI.ObjectModels.Models.ChatGpt3_5Turbo);
+                OpenAiSettings.OpenAiApiKey, mneExchangePromptHelper, OpenAI.ObjectModels.Models.Gpt_4);
 
             while (!cancellationToken.IsCancellationRequested) {
                 try {
@@ -109,11 +111,18 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
                                 var result = OpenAiChoicesConvertor.ConvertToFormalized(chatChoiceResultList.Choices);
                                 if (result.isSuccess) {
                                     foreach (var formalizedMessage in result.formalizedMessages!) {
-                                        formalizedMessages.Add(formalizedMessage);
+                                        if (formalizedMessage.NotMatched == true) {
+                                            locLog.Warning<FormalizedMessage>("Not Matched FormalizedMessage was found. {@notMatchedMessage}", formalizedMessage);
+                                            notMatchedMessages.Add(formalizedMessage);
+                                        }
+                                        else {
+                                            formalizedMessages.Add(formalizedMessage);
+                                        }
                                     }
                                 } else {
                                     //formalizedMessages returned from OpenAI are not in consistent state.
                                     //Usually it's result of wrong OpenAI behavior. So we need to formalize it again
+                                    //TODO: Add a counter to track the number of attempts for each message
                                     foreach (var message in messagesList) {
                                         messagesForAnalyzing.Add(message);
                                     }
@@ -171,7 +180,7 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
                     var cityDictionary = await cache.GetCityDictionary();
                     //TODO: Here, formalized messages should be converted to EF entities and saved to db
                     //TODO: In the future conversion should be performed as soon as new formalized message is created.
-                    List<EfModels.ExchangeOffer> exchangeOfferList = ModelsConvertor.ConvertDtoToEf(batchToSave, cityDictionary);
+                    List<EfModels.ExchangeOffer> exchangeOfferList = DtoToEfModelsConvertor.ConvertToExchangeOffers(batchToSave, cityDictionary);
                     await tgRepository.SaveExchangeOffers(exchangeOfferList);
                 }
                 await Task.Delay(SaveFormalizedSettings.IntervalSeconds * 1000);

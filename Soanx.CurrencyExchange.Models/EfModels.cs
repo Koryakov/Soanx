@@ -38,6 +38,32 @@ public class EfModels {
         public decimal? AmountMax { get; set; }
         public ExchangeType ExchangeTypeId { get; set; }
         public List<string> BankNames { get; set; }
+        public ICollection<CurrencyOfferCurrency> CurrencyOfferCurrencies { get; set; }
+    }
+
+    public class CurrencyOfferCurrency {
+        public int CurrencyOfferId { get; set; }
+        public CurrencyOffer CurrencyOffer { get; set; }
+        public int CurrencyId { get; set; }
+        public Currency Currency { get; set; }
+    }
+
+    public class Currency {
+        public int Id { get; set; }
+        public string Name { get; set; }
+
+        public static CurrencyEnum GetCurrencyEnumByName(string currencyName) {
+            switch(currencyName) {
+                case "USDT": return CurrencyEnum.USDT;
+                case "USDC": return CurrencyEnum.USDC;
+                case "BUSD": return CurrencyEnum.BUSD;
+                case "EUR": return CurrencyEnum.EUR;
+                case "USD": return CurrencyEnum.USD;
+                case "UAH": return CurrencyEnum.UAH;
+                case "RUB": return CurrencyEnum.RUB;
+                default: return CurrencyEnum.Other;
+            }
+        }
     }
 
     public class City {
@@ -61,6 +87,13 @@ public class EfModels {
         //public List<City> Cities { get; set; }
     }
 
+    public class NotMatchedTgMessage {
+        public int Id { get; set; }
+        public long TgMessageId { get; set; }
+        public DateTime CreatedDateUtc { get; set; }
+        public NotMatchedTgMessageStatusEnum Status { get; set; }
+    }
+
     public enum ExchangeType : int {
         Unknown = 0,
         Buy = 1,
@@ -82,5 +115,9 @@ public class EfModels {
         USD = 5,
         UAH = 6,
         RUB = 7
+    }
+
+    public enum NotMatchedTgMessageStatusEnum {
+        NotProcessed = 0
     }
 }

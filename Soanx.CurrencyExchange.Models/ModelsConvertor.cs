@@ -8,8 +8,8 @@ using static Soanx.CurrencyExchange.Models.DtoModels;
 using static Soanx.CurrencyExchange.Models.EfModels;
 
 namespace Soanx.CurrencyExchange.Models;
-public class ModelsConvertor {
-    public static List<EfModels.ExchangeOffer> ConvertDtoToEf(
+public class DtoToEfModelsConvertor {
+    public static List<EfModels.ExchangeOffer> ConvertToExchangeOffers(
         List<DtoModels.FormalizedMessage> dtoMessages, Dictionary<string, EfModels.City> cityDictionary) {
 
         var exchangeOfferList = new List<EfModels.ExchangeOffer>();
@@ -25,20 +25,20 @@ public class ModelsConvertor {
                 exchangeOffer.RateMax = dtoOffer.RateMax;
                 exchangeOffer.RateMin = dtoOffer.RateMin;
 
-                var cityNames = Enumerable.Empty<string>();
+                var currencyOfferCityNames = Enumerable.Empty<string>();
                 if (dtoOffer.Cities?.Count() > 0) {
-                    cityNames = dtoOffer.Cities;
+                    currencyOfferCityNames = dtoOffer.Cities;
                 }
                 else if (dtoMessage.Cities?.Count() > 0) {
-                    cityNames = dtoMessage.Cities;
+                    currencyOfferCityNames = dtoMessage.Cities;
                 }
-                exchangeOffer.CityExchangeOffers = GetOfferCities(exchangeOffer, cityNames);
+                exchangeOffer.CityExchangeOffers = GetOfferCities(exchangeOffer, currencyOfferCityNames, cityDictionary);
                 exchangeOfferList.Add(exchangeOffer);
             }
         }
         return exchangeOfferList;
 
-        ICurrencyOffer InitCurrencyOffer(ExchangeType exchangeType, CurrencyInfo currencyInfo) {
+        static ICurrencyOffer InitCurrencyOffer(ExchangeType exchangeType, CurrencyInfo currencyInfo) {
             if (currencyInfo == null
                 ||
                 currencyInfo.AmountMax == null
@@ -51,13 +51,16 @@ public class ModelsConvertor {
                     ExchangeTypeId = ExchangeType.Buy,
                     AmountMax = currencyInfo.AmountMax,
                     AmountMin = currencyInfo.AmountMin,
-                    BankNames = currencyInfo.Banks
+                    BankNames = currencyInfo.Banks,
                 };
+                currencyOffer.CurrencyOfferCurrencies = GetCurrencyOfferCurrencies(currencyOffer, currencyInfo.Currencies);
                 return currencyOffer;
             }
         }
 
-        List<CityExchangeOffer> GetOfferCities(ExchangeOffer exchangeOffer, IEnumerable<string> cityNames) {
+        static List<CityExchangeOffer> GetOfferCities(ExchangeOffer exchangeOffer, IEnumerable<string> cityNames,
+            Dictionary<string, EfModels.City> cityDictionary) {
+
             var ceo = new List<CityExchangeOffer>();
             foreach (string cityName in cityNames) {
                 if (cityDictionary.TryGetValue(cityName, out City city)) {
@@ -69,6 +72,31 @@ public class ModelsConvertor {
             }
             return ceo;
         }
+
+        static List<CurrencyOfferCurrency> GetCurrencyOfferCurrencies(CurrencyOffer currencyOffer, IEnumerable<string> currencyNames) {
+            var coc = new List<CurrencyOfferCurrency>();
+            foreach (string currencyName in currencyNames) {
+                coc.Add(new CurrencyOfferCurrency() {
+                    CurrencyOffer = currencyOffer,
+                    CurrencyId = (int)Currency.GetCurrencyEnumByName(currencyName)
+                });
+            }
+            return coc;
+        }
+    }
+
+    public static List<NotMatchedTgMessage> ConvertToNotMatchedTgMessages(List<DtoModels.FormalizedMessage> notMatchedMessages) {
+        List<NotMatchedTgMessage> efNotMatchedMessages = new();
+        var createdDateUtc = DateTime.UtcNow;
+
+        foreach (var message in notMatchedMessages) {
+            efNotMatchedMessages.Add(new NotMatchedTgMessage() { 
+                TgMessageId = message.Id,
+                Status = NotMatchedTgMessageStatusEnum.NotProcessed,
+                CreatedDateUtc = createdDateUtc
+            });
+        }
+        return efNotMatchedMessages;
     }
 
 }

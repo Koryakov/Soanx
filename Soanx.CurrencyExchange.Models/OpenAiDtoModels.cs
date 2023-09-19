@@ -43,7 +43,4 @@ public class DtoModels {
         public List<string>? Banks { get; set; }
 
     }
-    public class SellToBuyRate {
-        
-    }
 }
