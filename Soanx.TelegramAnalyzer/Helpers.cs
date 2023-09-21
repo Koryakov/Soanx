@@ -115,6 +115,7 @@ namespace Soanx.TelegramAnalyzer
                 UpdateType = updateType,
                 //TODO: check is local or UTC Datetime
                 CreatedDateUTC = date,
+                GrabbedDateUTC = DateTime.UtcNow,
             };
             InitializeMessageContentInfo(ref messageRaw, tdMessage.Content);
             InitializeSenderInfo(ref messageRaw, tdMessage.SenderId);
@@ -128,6 +129,7 @@ namespace Soanx.TelegramAnalyzer
                 TgMessageId = msgNew.Message.Id,
                 UpdateType = SoanxTdUpdateType.UpdateNewMessage,
                 CreatedDateUTC = DateTimeHelper.FromUnixTime(msgNew.Message.Date),
+                GrabbedDateUTC = DateTime.UtcNow,
             };
             InitializeMessageContentInfo(ref tgMessage, msgNew.Message.Content);
             InitializeSenderInfo(ref tgMessage, msgNew.Message.SenderId);
@@ -141,7 +143,8 @@ namespace Soanx.TelegramAnalyzer
                 TgChatId = msgContent.ChatId,
                 TgMessageId = msgContent.MessageId,
                 UpdateType = SoanxTdUpdateType.UpdateMessageEdited,
-                CreatedDateUTC = DateTime.UtcNow,
+                CreatedDateUTC = null,
+                GrabbedDateUTC = DateTime.UtcNow,
             };
             InitializeMessageContentInfo(ref tgMessage, msgContent.NewContent);
 

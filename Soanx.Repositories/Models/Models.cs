@@ -24,8 +24,9 @@ public class TgMessage {
     public long? SenderId { get; set; }
     public string Text { get; set; }
     public SenderType SenderType { get; set; }
+    public DateTime? CreatedDateUTC { get; set; }
     [Required]
-    public DateTime CreatedDateUTC { get; set; }
+    public DateTime GrabbedDateUTC { get; set; }
     [Required]
     public SoanxTdUpdateType UpdateType { get; set; }
     public MessageContentType ContentType { get; set; }
