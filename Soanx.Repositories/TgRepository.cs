@@ -89,7 +89,7 @@ namespace Soanx.Repositories
             }
         }
 
-        public async Task<(bool isSuccess, List<DtoModels.MessageForAnalyzing>? messages)> GetTgMessagesByAnalyzedStatus(int minReturningCount,
+        public async Task<(bool isSuccess, List<DtoModels.MessageToAnalyzing>? messages)> GetTgMessagesByAnalyzedStatus(int minReturningCount,
             TgMessage.TgMessageAnalyzedStatus currentStatus, TgMessage.TgMessageAnalyzedStatus newStatus) {
 
             var locLog = log.ForContext("method", "GetTgMessagesByAnalyzedStatus");
@@ -117,7 +117,7 @@ namespace Soanx.Repositories
                             if (tgMessages.Count > 0) {
                                 locLog.Debug("{@cnt} messages retrieved", tgMessages.Count);
                             }
-                            return (true, tgMessages.Select(m => new DtoModels.MessageForAnalyzing() { Id = m.Id, Text = m.Text }).ToList());
+                            return (true, tgMessages.Select(m => new DtoModels.MessageToAnalyzing() { Id = m.Id, Text = m.Text }).ToList());
                         }
                         return (false, null);
                     }

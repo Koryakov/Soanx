@@ -8,12 +8,12 @@ namespace Soanx.CurrencyExchange.Models;
 
 public class DtoModels {
     public class PromptingSet {
-        public MessageForAnalyzing Message { get; set; }
+        public MessageToAnalyzing Message { get; set; }
         public FormalizedMessage FormalizedMessage { get; set; }
     }
 
     public class FormalizedMessageEx : FormalizedMessage {
-        public MessageForAnalyzing Message { get; set; }
+        public MessageToAnalyzing Message { get; set; }
     }
 
     public class FormalizedMessage {
@@ -23,7 +23,7 @@ public class DtoModels {
         public List<Offer> Offers { get; set; }
     }
 
-    public class MessageForAnalyzing {
+    public class MessageToAnalyzing {
         public long Id { get; set; }
         public string Text { get; set; }
     }

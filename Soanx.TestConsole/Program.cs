@@ -50,7 +50,10 @@ public class SoanxConsole {
         ITelegramWorker tgGrabbingWorker = new TgMessageGrabbingWorker(tdClient, collectionForStoring, appSettings.TgGrabbingSettings, appSettings.TgGrabbingChats);
         ITelegramWorker tgSavingWorker = new TgMessageSavingWorker(appSettings.TgMessageSavingSettings, collectionForStoring, appSettings.SoanxConnectionString);
         ITelegramWorker tgEventsWorker = new TgMessageEventsWorker(tdClient, appSettings.TgListeningChats, appSettings.SoanxConnectionString);
-        ITelegramWorker tgAnalyzingWorker = new CurrencyAnalyzingWorker(appSettings.OpenAiSettings, appSettings.TgCurrencyAnalyzingSettings, appSettings.SoanxConnectionString, appSettings.CacheSettings);
+        ITelegramWorker tgAnalyzingWorker = new CurrencyAnalyzingWorker(
+            appSettings.OpenAiSettings, appSettings.TgCurrencyAnalyzingSettings, 
+            appSettings.SoanxConnectionString, appSettings.CacheSettings,
+            appSettings.RabbitMqCredentials, appSettings.MessagingSettings.MessagesToAnalyzeSettings);
 
         //TODO: TgMessageGrabbingWorker and TgMessageSavingWorker must work together. Probably saving worker should run inside grabbing worker.
         //tasks.Add(Task.Run(() => tgGrabbingWorker.Run(cancellationTokenSource.Token)));

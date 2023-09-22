@@ -38,7 +38,7 @@ public class ChatPromptHelper {
         messagesExList = await SerializationHelper.DeserializeJsonAsync<List<DtoModels.FormalizedMessageEx>>(promptJson);
         messagesList = messagesExList.ConvertAll<DtoModels.FormalizedMessage>(m => (DtoModels.FormalizedMessage)m);
 
-        MessagesJson = SerializationHelper.Serialize<IEnumerable<DtoModels.MessageForAnalyzing>>(
+        MessagesJson = SerializationHelper.Serialize<IEnumerable<DtoModels.MessageToAnalyzing>>(
             messagesExList.Select(ex => ex.Message));
 
         FormalizedMessagesJson = SerializationHelper.Serialize(messagesList);
