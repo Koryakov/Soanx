@@ -7,6 +7,7 @@ using Soanx.Repositories.Models;
 using Soanx.TelegramAnalyzer.Models;
 using System.Collections.Concurrent;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 using static Soanx.CurrencyExchange.Models.DtoModels;
 
 namespace Soanx.TelegramAnalyzer;
@@ -16,6 +17,8 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
         public int BatchSize { get; set; }
         public int IntervalSeconds { get; set; }
     }
+    public OpenAiSettings OpenAiSettings { get; private set; }
+    public TgCurrencyAnalyzingSettings TgCurrencyExtractorSettings { get; private set; }
 
     private Serilog.ILogger log = Log.ForContext<CurrencyAnalyzingWorker>();
     private CancellationToken cancellationToken;
@@ -26,17 +29,14 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
     private TgRepository tgRepository;
     private Cache cache;
     private List<Task> tasks = new List<Task>();
-    private RabbitMqCredentials rabbitMqCredentials;
-    private RabbitMqConnection rabbitMqConnection;
-    private QueueSettings messagesToAnalyzeSettings;
 
-
-    public OpenAiSettings OpenAiSettings { get; private set; }
-    public TgCurrencyAnalyzingSettings TgCurrencyExtractorSettings { get; private set; }
+    private SoanxQueue<MessageToAnalyzing> analysisQueue;
 
     private LoopSettings ReadTgMessagesSettings = new() { BatchSize = 1, IntervalSeconds = 5 };
     private LoopSettings AnalyzeSettings = new() { BatchSize = 1, IntervalSeconds = 15 };
     private LoopSettings SaveFormalizedSettings = new() { BatchSize = 1, IntervalSeconds = 5 };
+
+    private ExchangeAnalyzer exchangeAnalyzer;
 
     /*
     Steps of processing data: 
@@ -46,16 +46,19 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
 
     */
     public CurrencyAnalyzingWorker(OpenAiSettings openAiSettings, TgCurrencyAnalyzingSettings tgCurrencyExtractorSettings,
-        string soanxConnectionString, CacheSettings cacheSettings, RabbitMqCredentials rabbitMqCredentials,
-        QueueSettings messagesToAnalyzeSettings) {
+        string soanxConnectionString, CacheSettings cacheSettings, QueueConfigurations queueConfiguration) {
 
         tgRepository = new TgRepository(soanxConnectionString);
         OpenAiSettings = openAiSettings;
         TgCurrencyExtractorSettings = tgCurrencyExtractorSettings;
         cache = new Cache(cacheSettings, soanxConnectionString);
-        this.rabbitMqCredentials = rabbitMqCredentials;
-        this.rabbitMqConnection = new RabbitMqConnection(rabbitMqCredentials);
-        this.messagesToAnalyzeSettings = messagesToAnalyzeSettings;
+
+        var rabbitMqConnection = new RabbitMqConnection(queueConfiguration.RabbitMqCredentials);
+
+        analysisQueue = new SoanxQueue<MessageToAnalyzing>(
+            rabbitMqConnection, queueConfiguration.QueueMessagingSettings.MessagesToAnalyzeSettings);
+        
+        exchangeAnalyzer = new ExchangeAnalyzer(openAiSettings, queueConfiguration.QueueMessagingSettings, rabbitMqConnection);
     }
 
     public async Task Run(CancellationToken cancellationToken) {
@@ -64,7 +67,7 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
         locLog.Information("IN");
 
         tasks.Add(Task.Run(() => Read()));
-        tasks.Add(Task.Run(() => Analyze()));
+        //tasks.Add(Task.Run(() => Analyze()));
         tasks.Add(Task.Run(() => Save()));
 
         await Task.WhenAll(tasks);
@@ -74,8 +77,7 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
     private async Task Read() {
         var locLog = log.ForContext("method", "Read()");
         locLog.Information("IN");
-        var messagesToAnalyzeQueue = new MessagesToAnalyzeQueue(rabbitMqConnection, messagesToAnalyzeSettings);
-
+        
         while (!cancellationToken.IsCancellationRequested) {
             try {
                 var result = await tgRepository
@@ -83,10 +85,9 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
                         TgMessage.TgMessageAnalyzedStatus.Unknown, TgMessage.TgMessageAnalyzedStatus.InProcess);
 
                 if (result.isSuccess) {
-                    foreach(DtoModels.MessageToAnalyzing msg in result.messages!) {
-                        messagesForAnalyzing.Add(msg);
-                        //Send message to queue:
-                        //messagesToAnalyzeQueue.SendMessage(msg);
+                    foreach (DtoModels.MessageToAnalyzing msg in result.messages!) {
+                        analysisQueue.Send(msg);
+                        exchangeAnalyzer.AnalyzeTask();
                     }
                     locLog.Information("{@analyzingCount} messages read from db and added into messagesForAnalyzing collection.", messagesForAnalyzing.Count);
                 }
@@ -98,80 +99,8 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
         }
         locLog.Information("OUT");
     }
-    private async Task Analyze() {
-        var locLog = log.ForContext("method", "Analyze()");
-        locLog.Information("IN");
-        try {
-            var mneExchangePromptHelper = await ChatPromptHelper.CreateNew("MontenegroExchange");
-            //TODO: Gtp model name should be moved to appsettings
-            var openAiApiClient = new OpenAiApiClient(
-                OpenAiSettings.OpenAiApiKey, mneExchangePromptHelper, OpenAI.ObjectModels.Models.Gpt_4);
 
-            while (!cancellationToken.IsCancellationRequested) {
-                try {
-                    if (messagesForAnalyzing.Count >= AnalyzeSettings.BatchSize) {
-                        List<DtoModels.MessageToAnalyzing> messagesList = TakeMessagesBatchForAnalyzing(AnalyzeSettings.BatchSize);
-
-                        if (messagesList.Count > 0) {
-                            locLog.Information("msg in collectionForAnalyzing = {@allCollection}, taken to save = {@takenCount}", messagesForAnalyzing.Count, messagesList.Count);
-                            //TODO: Check for context_length_exceeded must be done here
-                            var chatChoiceResultList = await openAiApiClient.SendOpenAiRequest(messagesList);
-                            
-                            if (chatChoiceResultList.IsSuccess) {
-                                var result = OpenAiChoicesConvertor.ConvertToFormalized(chatChoiceResultList.Choices);
-                                if (result.isSuccess) {
-                                    foreach (var formalizedMessage in result.formalizedMessages!) {
-                                        if (formalizedMessage.NotMatched == true) {
-                                            locLog.Warning<FormalizedMessage>("Not Matched FormalizedMessage was found. {@notMatchedMessage}", formalizedMessage);
-                                            notMatchedMessages.Add(formalizedMessage);
-                                        }
-                                        else {
-                                            formalizedMessages.Add(formalizedMessage);
-                                        }
-                                    }
-                                } else {
-                                    //formalizedMessages returned from OpenAI are not in consistent state.
-                                    //Usually it's result of wrong OpenAI behavior. So we need to formalize it again
-                                    //TODO: Add a counter to track the number of attempts for each message
-                                    foreach (var message in messagesList) {
-                                        messagesForAnalyzing.Add(message);
-                                    }
-                                    locLog.Warning("Incorrectly formalized messages were returned to collection to formalize again.");
-                                }
-                            }
-                            else {
-                                //TODO: Negative scenario should be implemented here
-                            }
-                        }
-                    }
-                    await Task.Delay(AnalyzeSettings.IntervalSeconds * 1000);
-                } catch (Exception ex) {
-                    locLog.Error(ex, "Method processing will continue after pause.");
-                    await Task.Delay(5000);
-                }
-            }
-        } catch (Exception ex) {
-            locLog.Error(ex, "Method will be finished.");
-        }
-        locLog.Information("OUT");
-
-        
-        List<DtoModels.MessageToAnalyzing> TakeMessagesBatchForAnalyzing(int batchSize) {
-            var locLog = log.ForContext("method", "TakeMessagesBatchForAnalyzing()");
-
-            var messagesList = new List<DtoModels.MessageToAnalyzing>(batchSize);
-            int count = Math.Min(batchSize, messagesForAnalyzing.Count);
-            for (int i = 0; i < count; i++) {
-                if (messagesForAnalyzing.TryTake(out var item)) {
-                    messagesList.Add(item);
-                }
-            }
-            locLog.Verbose("{@takenCount} messages was taken.", messagesList.Count);
-
-            return messagesList;
-        }
-    }
-
+    
     private async Task Save() {
         var locLog = log.ForContext("method", "Save()");
         locLog.Information("IN");

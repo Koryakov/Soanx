@@ -18,7 +18,7 @@ public class AppSettingsHelper {
     public OpenAiSettings OpenAiSettings { get; set; }
     public CacheSettings CacheSettings { get; set; }
     public RabbitMqCredentials RabbitMqCredentials { get; set; }
-    public MessagingSettings MessagingSettings { get; set; }
+    public QueueMessagingSettings QueueMessagingSettings { get; set; }
 
     public AppSettingsHelper() {
         Config = new ConfigurationBuilder()
@@ -38,6 +38,6 @@ public class AppSettingsHelper {
         OpenAiSettings = Config.GetRequiredSection("OpenAiSettings").Get<OpenAiSettings>();
         CacheSettings = Config.GetRequiredSection("CacheSettings").Get<CacheSettings>();
         RabbitMqCredentials = Config.GetRequiredSection("RabbitMqCredentials").Get<RabbitMqCredentials>();
-        MessagingSettings = Config.GetRequiredSection("MessagingSettings").Get<MessagingSettings>();
+        QueueMessagingSettings = Config.GetRequiredSection("QueueMessagingSettings").Get<QueueMessagingSettings>();
     }
 }

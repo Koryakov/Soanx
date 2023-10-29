@@ -57,26 +57,33 @@ public class CacheSettings {
     public int DefaultExpirationMinutes { get; set; }
 }
 
-    public class RabbitMqCredentials     {
-        public string Hostname { get; set; }
-        public int Port { get; set; }
-        public string VirtualHost { get; set; }
-        public string Username { get; set; }
-        public string Password { get; set; }
-    }
+public class RabbitMqCredentials     {
+    public string Hostname { get; set; }
+    public int Port { get; set; }
+    public string VirtualHost { get; set; }
+    public string Username { get; set; }
+    public string Password { get; set; }
+}
 
-    public class MessagingSettings {
-        public QueueSettings MessagesToAnalyzeSettings { get; set; }
-    }
-    public class QueueSettings {
-        public string ExchangeName { get; set; }
-        public string QueueName { get; set; }
-        public string RoutingKey { get; set; }
-        public bool Durable { get; set; }
-        public bool Exclusive { get; set; }
-        public bool AutoDelete { get; set; }
-        public int PrefetchCount { get; set; }
-    }
+public class QueueMessagingSettings {
+    public QueueSettings MessagesToAnalyzeSettings { get; set; }
+    public QueueSettings FormalizedMessagesSettings { get; set; }
+    public QueueSettings NotMatchedMessagesSettings { get; set; }
+}
+public class QueueSettings {
+    public string ExchangeName { get; set; }
+    public string QueueName { get; set; }
+    public string RoutingKey { get; set; }
+    public bool Durable { get; set; }
+    public bool Exclusive { get; set; }
+    public bool AutoDelete { get; set; }
+    public int PrefetchCount { get; set; }
+}
+
+public class QueueConfigurations {
+    public RabbitMqCredentials RabbitMqCredentials { get; set; }
+    public QueueMessagingSettings QueueMessagingSettings { get; set; }
+}
 
 
 

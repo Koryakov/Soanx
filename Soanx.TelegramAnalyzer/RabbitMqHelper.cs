@@ -1,8 +1,10 @@
 ﻿using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using Soanx.Repositories.Models;
 using Soanx.TelegramAnalyzer.Models;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -12,6 +14,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using static Soanx.CurrencyExchange.Models.DtoModels;
 
 namespace Soanx.TelegramAnalyzer;
+
 public class RabbitMqConnection {
     public RabbitMqCredentials MqCredentials { get; private set; }
     public IConnection Connection { get; private set; }
@@ -36,11 +39,12 @@ public class RabbitMqConnection {
     }
 }
 
-public abstract class QueueHelper {
+public class SoanxQueue<T> {
     public RabbitMqConnection MqConnection { get; private set; }
     public QueueSettings QueueSettings { get; private set; }
-    public QueueHelper(RabbitMqConnection mqConnection, QueueSettings queueSettings) {
-        MqConnection = mqConnection;
+
+    public SoanxQueue(RabbitMqConnection rabbitMqConnection, QueueSettings queueSettings) {
+        MqConnection = rabbitMqConnection;
         QueueSettings = queueSettings;
         Initialize();
     }
@@ -57,7 +61,7 @@ public abstract class QueueHelper {
         MqConnection.Channel.QueueBind(QueueSettings.QueueName, QueueSettings.ExchangeName, QueueSettings.RoutingKey);
     }
 
-    protected void SendMessage<T>(T messageContent) {
+    public void Send(T messageContent) {
         var jsonMessage = JsonSerializer.Serialize(messageContent);
         var body = Encoding.UTF8.GetBytes(jsonMessage);
         MqConnection.Channel.BasicPublish(exchange: QueueSettings.ExchangeName,
@@ -65,13 +69,21 @@ public abstract class QueueHelper {
                                           basicProperties: null,
                                           body: body);
     }
-}
 
-public class MessagesToAnalyzeQueue : QueueHelper {
-    public MessagesToAnalyzeQueue(RabbitMqConnection mqConnection, QueueSettings queueSettings)
-        : base(mqConnection, queueSettings) {
-    }
-    public void SendMessage(MessageToAnalyzing messageToAnalyze) {
-        base.SendMessage<MessageToAnalyzing>(messageToAnalyze);
+    public void Subscribe(Func<T, ulong, bool> onMessageReceived) {
+        var consumer = new EventingBasicConsumer(MqConnection.Channel);
+        consumer.Received += (model, ea) => {
+            var body = ea.Body.ToArray();
+            var message = JsonSerializer.Deserialize<T>(body);
+            bool wasSuccessful = onMessageReceived(message, ea.DeliveryTag);
+            if (wasSuccessful) {
+                MqConnection.Channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
+            }
+            else {
+                MqConnection.Channel.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
+            }
+        };
+
+        MqConnection.Channel.BasicConsume(queue: QueueSettings.QueueName, autoAck: false, consumer: consumer);
     }
 }

@@ -94,6 +94,7 @@ public class OpenAiApiClient {
             foreach (var choice in completionResult.Choices) {
                 answers.Add(choice);
             }
+            //TODO: isSuccess condition must be extended (only checking count is not enough)
             isSuccess = completionRequest.Messages.Count > 0 && completionResult.Choices.Count > 0;
         }
         else {
