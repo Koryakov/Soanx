@@ -61,6 +61,7 @@ namespace Soanx.UnitTests {
                 mockTgEngine.RaiseMockUpdateReceivedEvent(this, msg);
                 logger.Info("test event invoked");
             }
+            Assert.True(true);
             logger.Info("OUT load test");
         }
     }

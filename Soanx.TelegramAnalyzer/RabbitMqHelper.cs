@@ -1,5 +1,6 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using Serilog;
 using Soanx.Repositories.Models;
 using Soanx.TelegramAnalyzer.Models;
 using System;
@@ -40,6 +41,8 @@ public class RabbitMqConnection {
 }
 
 public class SoanxQueue<T> {
+
+    private Serilog.ILogger log = Log.ForContext<SoanxQueue<T>>();
     public RabbitMqConnection MqConnection { get; private set; }
     public QueueSettings QueueSettings { get; private set; }
 
@@ -71,10 +74,15 @@ public class SoanxQueue<T> {
     }
 
     public void Subscribe(Func<T, ulong, bool> onMessageReceived) {
+        var locLog = log.ForContext("method", "Subscribe()");
+        locLog.Debug("IN.");
+
         var consumer = new EventingBasicConsumer(MqConnection.Channel);
         consumer.Received += (model, ea) => {
             var body = ea.Body.ToArray();
             var message = JsonSerializer.Deserialize<T>(body);
+            locLog.Debug<T>("IN. message: {@msg}", message);
+
             bool wasSuccessful = onMessageReceived(message, ea.DeliveryTag);
             if (wasSuccessful) {
                 MqConnection.Channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
@@ -82,6 +90,7 @@ public class SoanxQueue<T> {
             else {
                 MqConnection.Channel.BasicNack(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
             }
+            locLog.Debug<bool>("IN. onMessageReceived result: {@msg}", wasSuccessful);
         };
 
         MqConnection.Channel.BasicConsume(queue: QueueSettings.QueueName, autoAck: false, consumer: consumer);

@@ -18,7 +18,7 @@ public class DtoModels {
 
     public class FormalizedMessage {
         public long Id { get; set; }
-        public bool? NotMatched { get; set; }
+        public bool NotMatched { get; set; }
         public List<string>? Cities { get; set; }
         public List<Offer> Offers { get; set; }
     }

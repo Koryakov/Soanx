@@ -24,7 +24,7 @@ internal class Program {
         AppSettingsHelper appSettings = new();
         Log.Logger = new LoggerConfiguration()
            .ReadFrom.Configuration(appSettings.Config)
-           //.Enrich.FromLogContext()
+           .Enrich.FromLogContext()
            .CreateLogger();
 
         await new SoanxConsole().Main(appSettings);

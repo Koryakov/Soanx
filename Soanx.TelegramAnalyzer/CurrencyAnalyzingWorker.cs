@@ -23,18 +23,17 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
     private Serilog.ILogger log = Log.ForContext<CurrencyAnalyzingWorker>();
     private CancellationToken cancellationToken;
     //private ManualResetEvent newTgMessagesEvent = new(false);
-    private ConcurrentBag<DtoModels.MessageToAnalyzing> messagesForAnalyzing = new();
     private ConcurrentBag<DtoModels.FormalizedMessage> formalizedMessages = new();
     private ConcurrentBag<DtoModels.FormalizedMessage> notMatchedMessages = new();
     private TgRepository tgRepository;
     private Cache cache;
     private List<Task> tasks = new List<Task>();
 
-    private SoanxQueue<MessageToAnalyzing> analysisQueue;
+    private SoanxQueue<IList<MessageToAnalyzing>> analysisQueue;
 
     private LoopSettings ReadTgMessagesSettings = new() { BatchSize = 1, IntervalSeconds = 5 };
-    private LoopSettings AnalyzeSettings = new() { BatchSize = 1, IntervalSeconds = 15 };
-    private LoopSettings SaveFormalizedSettings = new() { BatchSize = 1, IntervalSeconds = 5 };
+    //private LoopSettings AnalyzeSettings = new() { BatchSize = 1, IntervalSeconds = 15 };
+    //private LoopSettings SaveFormalizedSettings = new() { BatchSize = 1, IntervalSeconds = 5 };
 
     private ExchangeAnalyzer exchangeAnalyzer;
 
@@ -55,10 +54,11 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
 
         var rabbitMqConnection = new RabbitMqConnection(queueConfiguration.RabbitMqCredentials);
 
-        analysisQueue = new SoanxQueue<MessageToAnalyzing>(
+        analysisQueue = new SoanxQueue<IList<MessageToAnalyzing>>(
             rabbitMqConnection, queueConfiguration.QueueMessagingSettings.MessagesToAnalyzeSettings);
         
-        exchangeAnalyzer = new ExchangeAnalyzer(openAiSettings, queueConfiguration.QueueMessagingSettings, rabbitMqConnection);
+        exchangeAnalyzer = new ExchangeAnalyzer(openAiSettings, queueConfiguration.QueueMessagingSettings, 
+            rabbitMqConnection, soanxConnectionString, cacheSettings);
     }
 
     public async Task Run(CancellationToken cancellationToken) {
@@ -68,7 +68,7 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
 
         tasks.Add(Task.Run(() => Read()));
         //tasks.Add(Task.Run(() => Analyze()));
-        tasks.Add(Task.Run(() => Save()));
+        //tasks.Add(Task.Run(() => Save()));
 
         await Task.WhenAll(tasks);
         locLog.Information("OUT");
@@ -77,7 +77,8 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
     private async Task Read() {
         var locLog = log.ForContext("method", "Read()");
         locLog.Information("IN");
-        
+        exchangeAnalyzer.SubscribeToQueueForAnalyzing();
+
         while (!cancellationToken.IsCancellationRequested) {
             try {
                 var result = await tgRepository
@@ -85,11 +86,8 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
                         TgMessage.TgMessageAnalyzedStatus.Unknown, TgMessage.TgMessageAnalyzedStatus.InProcess);
 
                 if (result.isSuccess) {
-                    foreach (DtoModels.MessageToAnalyzing msg in result.messages!) {
-                        analysisQueue.Send(msg);
-                        exchangeAnalyzer.AnalyzeTask();
-                    }
-                    locLog.Information("{@analyzingCount} messages read from db and added into messagesForAnalyzing collection.", messagesForAnalyzing.Count);
+                    analysisQueue.Send(result.messages);
+                    locLog.Information("{@analyzingCount} messages read from db and added into messagesForAnalyzing collection.", result.messages.Count);
                 }
                 await Task.Delay(ReadTgMessagesSettings.IntervalSeconds * 1000);
             } catch (Exception ex) {
@@ -99,38 +97,4 @@ public class CurrencyAnalyzingWorker : ITelegramWorker {
         }
         locLog.Information("OUT");
     }
-
-    
-    private async Task Save() {
-        var locLog = log.ForContext("method", "Save()");
-        locLog.Information("IN");
-
-        int batchSize = SaveFormalizedSettings.BatchSize;
-        while (!cancellationToken.IsCancellationRequested) {
-            var batchToSave = new List<DtoModels.FormalizedMessage>(batchSize);
-            try {
-                if (formalizedMessages.Count >= batchSize) {
-                    for (int i = 0; i < batchSize; i++) {
-                        if (formalizedMessages.TryTake(out var item)) {
-                            batchToSave.Add(item);
-                        }
-                    }
-                    locLog.Information("analyzedBatchList.Count = {@analyzedCount}", batchToSave.Count);
-                    var cityDictionary = await cache.GetCityDictionary();
-                    //TODO: Here, formalized messages should be converted to EF entities and saved to db
-                    //TODO: In the future conversion should be performed as soon as new formalized message is created.
-                    List<EfModels.ExchangeOffer> exchangeOfferList = DtoToEfModelsConvertor.ConvertToExchangeOffers(batchToSave, cityDictionary);
-                    await tgRepository.SaveExchangeOffers(exchangeOfferList);
-                }
-                await Task.Delay(SaveFormalizedSettings.IntervalSeconds * 1000);
-            }
-            catch (Exception ex) {
-                locLog.Error(ex, "Error due to saving formalized messages");
-                await Task.Delay(5000);
-            }
-
-        }
-        locLog.Information("OUT");
-    }
-
 }

@@ -34,8 +34,9 @@ namespace Soanx.Repositories
         protected override void OnConfiguring(DbContextOptionsBuilder builder) {
             if (!builder.IsConfigured) {
                 builder.UseNpgsql(connectionString)
-                    .UseLoggerFactory(loggerFactory)
-                    .EnableSensitiveDataLogging();
+                    //.UseLoggerFactory(loggerFactory)
+                    //.EnableSensitiveDataLogging()
+                    ;
             }
         }
 

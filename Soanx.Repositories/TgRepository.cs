@@ -106,12 +106,14 @@ namespace Soanx.Repositories
                             var tgMessages = await db.TgMessage
                                 .Where(m => m.AnalyzedStatus == currentStatus)
                                 .Take(minReturningCount).ToListAsync();
+                            
+                            locLog.Verbose<List<TgMessage>>("read messages: {@tgMessages}", tgMessages);
 
                             tgMessages.ForEach(ca => {
                                 ca.AnalyzedStatus = newStatus;
                                 ca.AnalyzedStatusModifiedDateUTC = modifiedDateUTC;
                             });
-                            db.SaveChanges();
+                            int savedCount = db.SaveChanges();
                             transaction.Commit();
 
                             if (tgMessages.Count > 0) {
